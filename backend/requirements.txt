@@ -1,0 +1,20 @@
+# FastAPI web framework
+fastapi==0.111.1
+uvicorn[standard]==0.23.1
+
+# Data validation
+pydantic==2.5.1
+
+# ORM and PostgreSQL driver
+sqlalchemy==2.0.20
+psycopg2-binary==2.9.9
+
+# Asynchronous task queue
+celery==5.5.2
+redis==5.3.7
+
+# Environment variable management
+python-dotenv==1.0.1
+
+# Supabase integration (storage + auth)
+supabase==1.0.2

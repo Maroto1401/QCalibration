@@ -1,0 +1,51 @@
+# ----------------------------
+# Python / Backend
+# ----------------------------
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+*.log
+
+# ----------------------------
+# Node / Frontend
+# ----------------------------
+frontend/node_modules/
+frontend/.pnp
+frontend/.pnp.js
+frontend/coverage/
+frontend/build/
+frontend/dist/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/package-lock.json
+frontend/pnpm-lock.yaml
+
+# ----------------------------
+# OS / System
+# ----------------------------
+.DS_Store
+Thumbs.db
+*.swp
+
+# ----------------------------
+# IDE / Editor
+# ----------------------------
+.vscode/
+.idea/
+
+# ----------------------------
+# Celery / Worker
+# ----------------------------
+celerybeat-schedule
+celerybeat.pid
+*.pid
+
+# ----------------------------
+# Docker
+# ----------------------------
+docker-compose.override.yml
+*.env.*.local
