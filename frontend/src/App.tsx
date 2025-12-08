@@ -1,25 +1,23 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { MantineProvider, Container, Title, Text } from '@mantine/core';
+import CircuitUploader from './components/CircuitUploader';
 
 function App() {
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <MantineProvider>
+      <Container size="md" style={{ paddingTop: 36 }}>
+        <Title order={2}>QCal — Take Your Quantum Circuits Further </Title>
+        <Text size="sm" style={{ marginTop: 8 }}>
+          Upload a quantum circuit (OpenQASM2, OpenQASM3 or JSON). The file will be
+          parsed and prepared for optimization.
+        </Text>
+
+        <div style={{ marginTop: 20 }}>
+          <CircuitUploader/>
+        </div>
+
+      </Container>
+    </MantineProvider>
   );
 }
 
