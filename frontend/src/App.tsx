@@ -1,24 +1,23 @@
+import { useState } from 'react';
 import { MantineProvider, Container, Title, Text } from '@mantine/core';
-import CircuitUploader from './components/CircuitUploader';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import HomePage from './pages/HomePage';
+import AnalysisPage from './pages/AnalysisPage';
 
-function App() {
+export default function App() {
+  const [circuit, setCircuit] = useState<any>(null);
 
   return (
     <MantineProvider>
-      <Container size="md" style={{ paddingTop: 36 }}>
-        <Title order={2}>QCal — Take Your Quantum Circuits Further </Title>
-        <Text size="sm" style={{ marginTop: 8 }}>
-          Upload a quantum circuit (OpenQASM2, OpenQASM3 or JSON). The file will be
-          parsed and prepared for optimization.
-        </Text>
-
-        <div style={{ marginTop: 20 }}>
-          <CircuitUploader/>
-        </div>
-
-      </Container>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<HomePage setCircuit={setCircuit} />} />
+          <Route
+            path="/circuit-analysis"
+            element={<AnalysisPage circuit={circuit} />}
+          />
+        </Routes>
+      </BrowserRouter>
     </MantineProvider>
   );
 }
-
-export default App;

@@ -21,3 +21,6 @@ supabase==1.0.2
 
 # Quantum SDK for circuit construction and export
 qiskit
+
+# File upload handling
+python-multipart==0.0.7
