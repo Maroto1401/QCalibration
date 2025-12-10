@@ -6,6 +6,4 @@ def parse_json(text: str) -> QuantumCircuit:
     Parses JSON-based quantum circuit.
     """
     data = json.loads(text)
-    qc = QuantumCircuit()
-    qc.load_from_json(data)
-    return qc
+    return QuantumCircuit.load_json(data)

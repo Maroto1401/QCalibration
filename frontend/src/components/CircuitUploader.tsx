@@ -20,11 +20,11 @@ import {
 
 type Props = {
   accept?: string;
-  onFile?: (parsed: any) => void;
+  circuitId?: (circuitId: any) => void;
 };
 
 
-export default function CircuitUploader({ accept = '.qasm,.qasm3,.json', onFile }: Props) {
+export default function CircuitUploader({ accept = '.qasm,.qasm3,.json', circuitId }: Props) {
   const [dragging, setDragging] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -118,15 +118,20 @@ export default function CircuitUploader({ accept = '.qasm,.qasm3,.json', onFile 
     setProgress(40);
 
     try {
-      const parsed = await parse_file(file);
-      if (onFile) onFile(parsed.circuit);
+      const response = await parse_file(file);
+      if (circuitId){
+        circuitId(response.circuit_id);
+        console.log(response.message);
+        console.log("Parsed circuit ID:", response.circuit_id);
+      }
+        
 
 
       setProgress(100);
       setSuccess(true);
 
       navigate("/circuit-analysis", {
-        state: { circuit: parsed.circuit },
+        state: { circuit: response.circuit_id },
       });
 
     } catch (err: any) {
