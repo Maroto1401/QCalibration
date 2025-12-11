@@ -1,17 +1,19 @@
-import { Container, Title, Text, Loader, Alert, Grid} from "@mantine/core";
+import { Container, Title, Text, Loader, Alert, Grid, Group, Divider, Stack} from "@mantine/core";
 import { useEffect, useState } from "react";
 import axios from "axios";
 
 import MetricsCard from "../components/MetricsCard";
 import GateBreakdownCard from "../components/GateBreakdownCard";
-import CircuitIDCard from "../components/CircuitIDCard";
+import CircuitInfoCard from "../components/CircuitInfoCard";
 
-import { CircuitData } from "../types";
+import { CircuitData, CircuitMetadata } from "../types";
 import TwoQubitGatesBreakdownDonut from "../components/TwoQubitGatesBreakdownDonut";
+import { IconCircuitResistor } from "@tabler/icons-react";
 
 
 
-export default function AnalysisPage({ circuitId }: { circuitId?: string }) {
+export default function AnalysisPage({ circuitMetadata }: { circuitMetadata: CircuitMetadata}) {
+  const circuitId = circuitMetadata.circuit_id;
   const [circuit, setCircuit] = useState<CircuitData | null>(null);
   const [loading, setLoading] = useState(!!circuitId);
   const [error, setError] = useState<string | null>(null);
@@ -84,27 +86,42 @@ export default function AnalysisPage({ circuitId }: { circuitId?: string }) {
 
 return (
   <Container size="lg" style={{ paddingTop: 40 }}>
-    <Title order={2} mb="lg">
-      Circuit Analysis
-    </Title>
-
+    <Stack gap="sm">
+    <Group justify="center" align="center" gap="xs">
+  <IconCircuitResistor size={32} stroke={1.5} color="#228BE6" />
+  <Title 
+    order={2}
+    fw={700}
+    style={{
+      background: "linear-gradient(45deg, #228BE6 0%, #15AABF 100%)",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      backgroundClip: "text",
+    }}
+  >
+    Quantum Circuit Analysis
+  </Title>
+</Group>
+<Divider size="xs" label="A tool for researchers" labelPosition="center" />
     <Grid gutter="md">
       <Grid.Col span={{ base: 12, md: 8, lg: 8 }}>
         <MetricsCard summary={summary} />
       </Grid.Col>
+      <Grid.Col span={{ base: 12, md: 4, lg: 4 }}>
+        <CircuitInfoCard metadata={circuitMetadata} />
+      </Grid.Col>
+    </Grid>
+    <Grid gutter="md">
 
-      <Grid.Col span={{ base: 12, md: 6, lg: 4 }}>
+      <Grid.Col span={{ base: 12, md: 6, lg: 8 }}>
         <GateBreakdownCard gateCounts={summary.gate_counts} />
       </Grid.Col>
 
       <Grid.Col span={{ base: 12, md: 6, lg: 4 }}>
         <TwoQubitGatesBreakdownDonut twoQubitGates={summary.two_qubit_gates}/>
-      </Grid.Col>
-
-      <Grid.Col span={{ base: 12, md: 6, lg: 4 }}>
-        <CircuitIDCard id={circuit.circuit_id} />
-      </Grid.Col>
+      </Grid.Col>  
     </Grid>
+    </Stack>
   </Container>
 );
 

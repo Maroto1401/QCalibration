@@ -14,3 +14,9 @@ export interface CircuitData {
   circuit_id: string;
   summary: CircuitSummary;
 }
+
+export interface CircuitMetadata {
+  filename: string;
+  filetype: string;
+  circuit_id: string;
+}

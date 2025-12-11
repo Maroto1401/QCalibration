@@ -12,14 +12,22 @@ export default function GateBreakdownCard({ gateCounts }: GateBreakdownCardProps
   const dataAxis = sortedEntries.map(([gate]) => gate.toUpperCase());
   const data = sortedEntries.map(([, count]) => count);
   const yMax = Math.max(...data) * 1.1; // add 10% padding for shadow
-  const dataShadow = data.map(() => yMax);
+  const totalGates = data.reduce((sum, count) => sum + count, 0);
 
   const option = {
     title: {
       text: "Gate Breakdown of your Quantum Circuit",
       left: "center",
     },
-    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+    tooltip: { 
+    trigger: "axis", 
+    axisPointer: { type: "shadow" },
+    formatter: (params: any) => {
+      const dataItem = params[0];
+      const percentage = ((dataItem.value / totalGates) * 100).toFixed(1);
+      return `${dataItem.name}: ${percentage}%`;
+    }
+  },
     xAxis: {
       type: "value",
       axisLine: { show: false },

@@ -20,9 +20,9 @@ export default function TwoQubitGatesBreakdownDonut({ twoQubitGates }: TwoQubitD
     },
     tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
     legend: {
-      orient: "vertical",
-      left: 10,
-      top: "middle",
+    orient: "horizontal",
+    bottom: 10,
+    left: "center",
     },
     series: [
       {

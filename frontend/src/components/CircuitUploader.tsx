@@ -17,14 +17,15 @@ import {
   IconAlertTriangle,
   IconCircleCheck,
 } from '@tabler/icons-react';
+import { CircuitMetadata } from '../types';
 
 type Props = {
   accept?: string;
-  circuitId?: (circuitId: any) => void;
+  setCircuitMetadata?: (meta: CircuitMetadata) => void;
 };
 
 
-export default function CircuitUploader({ accept = '.qasm,.qasm3,.json', circuitId }: Props) {
+export default function CircuitUploader({ accept = '.qasm,.qasm3,.json', setCircuitMetadata }: Props) {
   const [dragging, setDragging] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -118,28 +119,28 @@ export default function CircuitUploader({ accept = '.qasm,.qasm3,.json', circuit
     setProgress(40);
 
     try {
-      const response = await parse_file(file);
-      if (circuitId){
-        circuitId(response.circuit_id);
-        console.log(response.message);
-        console.log("Parsed circuit ID:", response.circuit_id);
-      }
-        
+  const response = await parse_file(file);
 
+  if (setCircuitMetadata) {
+    setCircuitMetadata({
+      circuit_id: response.circuit_id,
+      filename: file.name,
+      filetype: type,
+    });
+  }
 
-      setProgress(100);
-      setSuccess(true);
+  setProgress(100);
+  setSuccess(true);
 
-      navigate("/circuit-analysis", {
-        state: { circuit: response.circuit_id },
-      });
+  navigate("/circuit-analysis");
 
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message);
-    } finally {
-      setProgress(null);
-    }
+} catch (err: any) {
+  console.error(err);
+  setError(err.message);
+} finally {
+  setProgress(null);
+}
+
 
   }, []);
 

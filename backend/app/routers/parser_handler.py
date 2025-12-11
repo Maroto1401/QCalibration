@@ -67,7 +67,7 @@ async def parse_circuit(file: UploadFile):
         parsed_circuits[circuit_id] = qc
 
         # --- Return only a reference to the frontend ---
-        return {"circuit_id": circuit_id, "message": "Circuit parsed successfully"}
+        return {"circuit_id": circuit_id, "message": "Circuit parsed successfully", "filename":filename, "filetype": filetype}
 
     except HTTPException:
         raise

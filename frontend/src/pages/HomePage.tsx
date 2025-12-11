@@ -1,7 +1,12 @@
 import { Container, Title, Text } from "@mantine/core";
 import CircuitUploader from "../components/CircuitUploader";
+import { CircuitMetadata } from "../types";
 
-export default function HomePage({ setCircuitId }: { setCircuitId: (c: any) => void }) {
+export default function HomePage({
+  setCircuitMetadata,
+}: {
+  setCircuitMetadata: (m: CircuitMetadata) => void;
+}) {
   return (
     <Container size="md" style={{ paddingTop: 36 }}>
       <Title order={2}>QCal — Take Your Quantum Circuits Further</Title>
@@ -10,8 +15,9 @@ export default function HomePage({ setCircuitId }: { setCircuitId: (c: any) => v
       </Text>
 
       <div style={{ marginTop: 20 }}>
-        <CircuitUploader circuitId={setCircuitId} />
+        <CircuitUploader setCircuitMetadata={setCircuitMetadata} />
       </div>
     </Container>
   );
 }
+
