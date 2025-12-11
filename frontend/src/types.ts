@@ -8,6 +8,13 @@ export interface CircuitSummary {
   n_swap_gates: number;
   depth: number;
   gate_counts: Record<string, number>;
+  operations: Operation[];
+}
+export interface Operation {
+  type: string;
+  qubits: number[];
+  clbits?: number[];
+  params?: number[];
 }
 
 export interface CircuitData {
@@ -20,3 +27,6 @@ export interface CircuitMetadata {
   filetype: string;
   circuit_id: string;
 }
+
+
+

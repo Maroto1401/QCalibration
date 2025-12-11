@@ -106,7 +106,8 @@ async def get_circuit(circuit_id: str):
         "depth": depth,
         "n_swap_gates": n_swap_gates,
         "n_cx_gates": n_cx_gates, 
-        "gate_counts": {op.name: sum(1 for o in qc.operations if isinstance(o, Operation) and o.name == op.name) for op in qc.operations if isinstance(op, Operation)}
+        "gate_counts": {op.name: sum(1 for o in qc.operations if isinstance(o, Operation) and o.name == op.name) for op in qc.operations if isinstance(op, Operation)},
+        "operations": qc.operations_list()
     }
     return {"circuit_id": circuit_id, "summary": summary}
 

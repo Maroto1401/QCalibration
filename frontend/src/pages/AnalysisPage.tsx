@@ -9,6 +9,7 @@ import CircuitInfoCard from "../components/CircuitInfoCard";
 import { CircuitData, CircuitMetadata } from "../types";
 import TwoQubitGatesBreakdownDonut from "../components/TwoQubitGatesBreakdownDonut";
 import { IconCircuitResistor } from "@tabler/icons-react";
+import { QuantumCircuitVisualizer } from "../components/QuantumCircuitVisualizer";
 
 
 
@@ -82,7 +83,6 @@ export default function AnalysisPage({ circuitMetadata }: { circuitMetadata: Cir
   }
 
   const { summary } = circuit;
-  console.log("Two Qubit Gates:", summary.two_qubit_gates);
 
 return (
   <Container size="lg" style={{ paddingTop: 40 }}>
@@ -120,6 +120,11 @@ return (
       <Grid.Col span={{ base: 12, md: 6, lg: 4 }}>
         <TwoQubitGatesBreakdownDonut twoQubitGates={summary.two_qubit_gates}/>
       </Grid.Col>  
+    </Grid>
+    <Grid gutter="md">
+      <Grid.Col span={{ base: 12, md: 12, lg: 12}}>
+        <QuantumCircuitVisualizer circuit={summary}  />
+      </Grid.Col>
     </Grid>
     </Stack>
   </Container>

@@ -137,14 +137,9 @@ class QuantumCircuit:
     # ------------------------------------------
     # Serialization (e.g., for web apps)
     # ------------------------------------------
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to JSON-serializable dict."""
-        return {
-            "num_qubits": self.num_qubits,
-            "num_clbits": self.num_clbits,
-            "operations": [self._op_to_dict(op) for op in self.operations],
-            "metadata": self.metadata,
-        }
+    def operations_list(self) -> Dict[str, Any]:
+        """Returns a list of operations as dictionaries for serialization."""
+        return [self._op_to_dict(op) for op in self.operations],
 
     @staticmethod
     def _op_to_dict(op: Operation) -> Dict[str, Any]:
@@ -153,7 +148,6 @@ class QuantumCircuit:
             "qubits": op.qubits,
             "clbits": op.clbits,
             "params": op.params,
-            "metadata": op.metadata,
         }
 
         if op.condition:
@@ -289,16 +283,4 @@ class QuantumCircuit:
         except Exception as e:
             raise ValueError(f"Failed to parse QASM3: {e}")
         
-    @staticmethod
-    def load_json(json_dict: dict) -> QuantumCircuit:
-        """
-        Load a Qiskit-style JSON/dict into a QuantumCircuit.
-        """
-        try:
-            print("Loading JSON circuit into Qiskit QuantumCircuit")
-            qiskit_qc = QiskitQuantumCircuit.from_dict(json_dict)
-            print("Successfully loaded Qiskit QuantumCircuit from JSON")
-            return QuantumCircuit.from_qiskit(qiskit_qc)
-        except Exception as e:
-            raise ValueError(f"Failed to load JSON circuit: {e}")
 
