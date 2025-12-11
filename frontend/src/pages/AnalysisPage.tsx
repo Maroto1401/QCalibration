@@ -1,16 +1,15 @@
-import { Container, Title, Text, Loader, Alert, Badge } from "@mantine/core";
+import { Container, Title, Text, Loader, Alert, Grid} from "@mantine/core";
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-type CircuitData = {
-  circuit_id: string;
-  summary: {
-    n_qubits: number;
-    n_clbits: number;
-    n_gates: number;
-    gate_names: string[];
-  };
-};
+import MetricsCard from "../components/MetricsCard";
+import GateBreakdownCard from "../components/GateBreakdownCard";
+import CircuitIDCard from "../components/CircuitIDCard";
+
+import { CircuitData } from "../types";
+import TwoQubitGatesBreakdownDonut from "../components/TwoQubitGatesBreakdownDonut";
+
+
 
 export default function AnalysisPage({ circuitId }: { circuitId?: string }) {
   const [circuit, setCircuit] = useState<CircuitData | null>(null);
@@ -81,71 +80,32 @@ export default function AnalysisPage({ circuitId }: { circuitId?: string }) {
   }
 
   const { summary } = circuit;
-  const gateCount: Record<string, number> = {};
-  summary.gate_names.forEach((gate) => {
-    gateCount[gate] = (gateCount[gate] || 0) + 1;
-  });
+  console.log("Two Qubit Gates:", summary.two_qubit_gates);
 
-  return (
-    <Container size="md" style={{ paddingTop: 20 }}>
-      <Title order={2}>Circuit Analysis</Title>
+return (
+  <Container size="lg" style={{ paddingTop: 40 }}>
+    <Title order={2} mb="lg">
+      Circuit Analysis
+    </Title>
 
-      <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 16 }}>
-        <div style={{ border: "1px solid #e0e0e0", padding: 12, borderRadius: 4 }}>
-          <Title order={4}>Circuit Metrics</Title>
-          <div style={{ display: "flex", gap: 24, marginTop: 12 }}>
-            <div>
-              <Text size="sm" color="dimmed">
-                Qubits
-              </Text>
-              <Text style={{ fontWeight: 500, fontSize: 18 }}>
-                {summary.n_qubits}
-              </Text>
-            </div>
-            <div>
-              <Text size="sm" color="dimmed">
-                Classical Bits
-              </Text>
-              <Text style={{ fontWeight: 500, fontSize: 18 }}>
-                {summary.n_clbits}
-              </Text>
-            </div>
-            <div>
-              <Text size="sm" color="dimmed">
-                Total Gates
-              </Text>
-              <Text style={{ fontWeight: 500, fontSize: 18 }}>
-                {summary.n_gates}
-              </Text>
-            </div>
-          </div>
-        </div>
+    <Grid gutter="md">
+      <Grid.Col span={{ base: 12, md: 8, lg: 8 }}>
+        <MetricsCard summary={summary} />
+      </Grid.Col>
 
-        <div style={{ border: "1px solid #e0e0e0", padding: 12, borderRadius: 4 }}>
-          <Title order={4}>Gate Breakdown</Title>
-          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-            {Object.entries(gateCount).map(([gate, count]) => (
-              <Badge key={gate} size="lg">
-                {gate}: {count}
-              </Badge>
-            ))}
-          </div>
-        </div>
+      <Grid.Col span={{ base: 12, md: 6, lg: 4 }}>
+        <GateBreakdownCard gateCounts={summary.gate_counts} />
+      </Grid.Col>
 
-        <div style={{ border: "1px solid #e0e0e0", padding: 12, borderRadius: 4 }}>
-          <Title order={4}>Circuit ID</Title>
-          <Text
-            size="sm"
-            style={{
-              marginTop: 8,
-              fontFamily: "monospace",
-              wordBreak: "break-all",
-            }}
-          >
-            {circuit.circuit_id}
-          </Text>
-        </div>
-      </div>
-    </Container>
-  );
+      <Grid.Col span={{ base: 12, md: 6, lg: 4 }}>
+        <TwoQubitGatesBreakdownDonut twoQubitGates={summary.two_qubit_gates}/>
+      </Grid.Col>
+
+      <Grid.Col span={{ base: 12, md: 6, lg: 4 }}>
+        <CircuitIDCard id={circuit.circuit_id} />
+      </Grid.Col>
+    </Grid>
+  </Container>
+);
+
 }

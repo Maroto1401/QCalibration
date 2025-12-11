@@ -89,21 +89,23 @@ class QuantumCircuit:
 
     def __init__(
         self,
-        qubit_count: int = 0,
-        clbit_count: int = 0,
+        num_qubits: int = 0,
+        num_clbits: int = 0,
+        circuit_depth: int = 0,
         operations: Optional[List[Operation]] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ):
-        self.qubit_count = qubit_count
-        if isinstance(clbit_count, int):
-            self.clbit_count = clbit_count
-        elif isinstance(clbit_count, (list, tuple)):
-            self.clbit_count = len(clbit_count)
-        elif clbit_count is None:
-            self.clbit_count = 0
+        self.num_qubits = num_qubits
+        if isinstance(num_clbits, int):
+            self.num_clbits = num_clbits
+        elif isinstance(num_clbits, (list, tuple)):
+            self.num_clbits = len(num_clbits)
+        elif num_clbits is None:
+            self.num_clbits = 0
         self.operations = operations or []
+        self.depth = circuit_depth
         self.metadata = metadata or {}
-        print(f"Initialized QuantumCircuit with {self.qubit_count} qubits and {self.clbit_count} clbits.")
+        print(f"Initialized QuantumCircuit with {self.num_qubits} qubits and {self.num_clbits} clbits.")
 
     # ------------------------------------------
     # Add operations
@@ -138,8 +140,8 @@ class QuantumCircuit:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to JSON-serializable dict."""
         return {
-            "qubit_count": self.qubit_count,
-            "clbit_count": self.clbit_count,
+            "num_qubits": self.num_qubits,
+            "num_clbits": self.num_clbits,
             "operations": [self._op_to_dict(op) for op in self.operations],
             "metadata": self.metadata,
         }
@@ -186,10 +188,10 @@ class QuantumCircuit:
     def from_dict(data: Dict[str, Any]) -> "QuantumCircuit":
         qc = QuantumCircuit(
             data["num_qubits"],
-            data.get("clbit_count", 0),
+            data.get("num_clbits", 0),
             metadata=data.get("metadata", {}),
         )
-        print(f"Loading QuantumCircuit from dict with {qc.qubit_count} qubits and {qc.clbit_count} clbits.")
+        print(f"Loading QuantumCircuit from dict with {qc.num_qubits} qubits and {qc.num_clbits} clbits.")
         for op_data in data["gates"]:
             qc.operations.append(QuantumCircuit._op_from_dict(op_data))
 
@@ -232,8 +234,9 @@ class QuantumCircuit:
     # ------------------------------------------
     def from_qiskit(qc):
         qCal_qc = QuantumCircuit(
-            qubit_count=qc.num_qubits,
-            clbit_count=qc.num_clbits
+            num_qubits=qc.num_qubits,
+            num_clbits=qc.num_clbits, 
+            circuit_depth = qc.depth()
         )
         for instr, qargs, cargs in qc.data:
             print(f"Processing instruction: {instr.name} on qubits {qargs} and classical args {cargs}")

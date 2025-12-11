@@ -1,11 +1,10 @@
 from fastapi import APIRouter, UploadFile, HTTPException
-from fastapi.responses import JSONResponse
 from uuid import uuid4
 
 from ..parsers.qasm2_parser import qasm2_parser
 from ..parsers.qasm3_parser import qasm3_parser
 from ..parsers.json_parser import parse_json
-from ..core.QuantumCircuit import QuantumCircuit
+from ..core.QuantumCircuit import QuantumCircuit, Operation
 
 router = APIRouter(prefix="", tags=["parsing"])
 parsed_circuits = {}  # simple in-memory store; replace with DB in prod
@@ -81,13 +80,42 @@ async def get_circuit(circuit_id: str):
     if not qc:
         raise HTTPException(status_code=404, detail="Circuit not found")
 
-    # optionally return metadata/summary only
+    # --- Basic info ---
+    n_qubits = qc.num_qubits
+    n_clbits = qc.num_clbits
+    n_gates = len(qc.operations)
+    depth = qc.depth
+    # --- Compute additional metrics ---
+    n_two_qubit_gates = 0
+    n_swap_gates = 0
+    n_cx_gates = 0
+    two_qubit_gates_dict = {}
+
+    for op in qc.operations:
+        # Only count actual Operation instances, not control flow
+        if isinstance(op, Operation):
+            if len(op.qubits) == 2:
+                n_two_qubit_gates += 1
+                two_qubit_gates_dict[op.name] = two_qubit_gates_dict.get(op.name, 0) + 1
+            if op.name.lower() == "swap":
+                n_swap_gates += 1
+            if op.name.lower() == "cx":
+                n_cx_gates += 1
+
+    # --- Prepare summary ---
     summary = {
-        "n_qubits": qc.qubit_count,
-        "n_clbits": qc.clbit_count,
-        "n_gates": len(qc.operations),
-        "gate_names": [op.name for op in qc.operations]
+        "n_qubits": n_qubits,
+        "n_clbits": n_clbits,
+        "n_gates": n_gates,
+        "gate_names": [op.name for op in qc.operations],
+        "two_qubit_gates": two_qubit_gates_dict,
+        "n_two_qubit_gates": n_two_qubit_gates,
+        "depth": depth,
+        "n_swap_gates": n_swap_gates,
+        "n_cx_gates": n_cx_gates, 
+        "gate_counts": {op.name: sum(1 for o in qc.operations if isinstance(o, Operation) and o.name == op.name) for op in qc.operations if isinstance(op, Operation)}
     }
     return {"circuit_id": circuit_id, "summary": summary}
+
 
 
