@@ -3,7 +3,6 @@ from uuid import uuid4
 
 from ..parsers.qasm2_parser import qasm2_parser
 from ..parsers.qasm3_parser import qasm3_parser
-from ..parsers.json_parser import parse_json
 from ..core.QuantumCircuit import QuantumCircuit, Operation
 
 router = APIRouter(prefix="", tags=["parsing"])
@@ -32,8 +31,6 @@ async def parse_circuit(file: UploadFile):
             filetype = "qasm3"
         elif filename.endswith(".qasm"):
             filetype = "qasm"
-        elif filename.endswith(".json"):
-            filetype = "json"
         else:
             # fallback: try content detection
             first_line = raw_text.strip().split("\n")[0]
@@ -41,8 +38,6 @@ async def parse_circuit(file: UploadFile):
                 filetype = "qasm3"
             elif "OPENQASM 2" in first_line.upper():
                 filetype = "qasm"
-            elif raw_text.strip().startswith("{") or raw_text.strip().startswith("["):
-                filetype = "json"
             else:
                 raise HTTPException(
                     status_code=400,
@@ -55,8 +50,6 @@ async def parse_circuit(file: UploadFile):
                 qc: QuantumCircuit = qasm2_parser(raw_text)
             elif filetype == "qasm3":
                 qc: QuantumCircuit = qasm3_parser(raw_text)
-            elif filetype == "json":
-                qc: QuantumCircuit = parse_json(raw_text)
             else:
                 raise HTTPException(status_code=500, detail="Unknown filetype detected")
         except Exception as e:

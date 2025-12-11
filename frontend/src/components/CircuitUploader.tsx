@@ -25,7 +25,7 @@ type Props = {
 };
 
 
-export default function CircuitUploader({ accept = '.qasm,.qasm3,.json', setCircuitMetadata }: Props) {
+export default function CircuitUploader({ accept = '.qasm,.qasm3', setCircuitMetadata }: Props) {
   const [dragging, setDragging] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +59,6 @@ export default function CircuitUploader({ accept = '.qasm,.qasm3,.json', setCirc
     const first = s.trim().split(/\r?\n/).find((l) => l.trim()) || "";
     if (first.includes("OPENQASM 3")) return "qasm3";
     if (first.includes("OPENQASM 2")) return "qasm";
-    if (s.trim().startsWith("{") || s.trim().startsWith("[")) return "json";
     return null;
   };
 
@@ -69,16 +68,6 @@ export default function CircuitUploader({ accept = '.qasm,.qasm3,.json', setCirc
     if (version === "qasm" && !first.includes("2")) return { valid: false, msg: "Expected OPENQASM 2" };
     if (version === "qasm3" && !first.includes("3")) return { valid: false, msg: "Expected OPENQASM 3" };
     return { valid: true, msg: "" };
-  };
-
-  const validateJson = (s: string) => {
-    try {
-      const obj = JSON.parse(s);
-      if (typeof obj === "object") return { valid: true, msg: "" };
-      return { valid: false, msg: "Invalid JSON structure" };
-    } catch {
-      return { valid: false, msg: "Invalid JSON" };
-    }
   };
 
   // ---------------------------
@@ -97,7 +86,6 @@ export default function CircuitUploader({ accept = '.qasm,.qasm3,.json', setCirc
     const type =
       ext === "qasm" ? "qasm" :
       ext === "qasm3" ? "qasm3" :
-      ext === "json" ? "json" :
       detectByContent(text);
 
     if (!type) {
@@ -108,7 +96,6 @@ export default function CircuitUploader({ accept = '.qasm,.qasm3,.json', setCirc
     // Validate content
     let validation = { valid: false, msg: "" };
     if (type === "qasm" || type === "qasm3") validation = validateQasm(text, type);
-    else if (type === "json") validation = validateJson(text);
 
     if (!validation.valid) {
       setError(validation.msg);
@@ -186,7 +173,7 @@ export default function CircuitUploader({ accept = '.qasm,.qasm3,.json', setCirc
           </ThemeIcon>
 
           <Text size="lg">Upload your Quantum Circuit</Text>
-          <Text size="sm" color="dimmed">Drag & drop or select a file</Text>
+          <Text size="sm" >Drag & drop or select a file</Text>
 
           {/* UPLOAD BUTTON */}
           <FileButton onChange={(file) => validateAndHandleFile(file)} accept={accept}>

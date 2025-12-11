@@ -1,6 +1,6 @@
 import { Card, Group, ThemeIcon, Title, Text } from "@mantine/core";
 import { IconBraces, IconFileCode, IconFileText } from "@tabler/icons-react";
-import { CircuitMetadata } from "../types"; // adjust import path
+import { CircuitMetadata } from "../types"; 
 
 export default function CircuitInfoCard({
   metadata,

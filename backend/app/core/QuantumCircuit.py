@@ -187,8 +187,8 @@ class QuantumCircuit:
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> "QuantumCircuit":
         qc = QuantumCircuit(
-            data["num_qubits"],
-            data.get("num_clbits", 0),
+            num_qubits=data["num_qubits"],
+            num_clbits=data.get("num_clbits", 0),
             metadata=data.get("metadata", {}),
         )
         print(f"Loading QuantumCircuit from dict with {qc.num_qubits} qubits and {qc.num_clbits} clbits.")
@@ -230,7 +230,7 @@ class QuantumCircuit:
             data.get("metadata", {}),
         )
     # ------------------------------------------
-    # Qiskit interop to QuantumCircuit
+    # Qiskit interop to QuantumCircuit given a quantum circuit in QASM format
     # ------------------------------------------
     def from_qiskit(qc):
         qCal_qc = QuantumCircuit(
@@ -244,8 +244,6 @@ class QuantumCircuit:
             params = [float(p) for p in instr.params]
             qubits = [qc.qubits.index(q) for q in qargs]
             clbits = [qc.clbits.index(c) for c in cargs]
-            print(f"Mapped qubit: {qubits}")
-            print(f"Mapped clbit: {clbits}")
 
             # support classical conditions
             condition = None
@@ -266,6 +264,7 @@ class QuantumCircuit:
                 condition=condition
             ))
         print("Converted Qiskit QuantumCircuit to IR QuantumCircuit")
+        print(qCal_qc)
         return qCal_qc
 
     @staticmethod
@@ -296,7 +295,10 @@ class QuantumCircuit:
         Load a Qiskit-style JSON/dict into a QuantumCircuit.
         """
         try:
-            return QuantumCircuit.from_dict(json_dict)
+            print("Loading JSON circuit into Qiskit QuantumCircuit")
+            qiskit_qc = QiskitQuantumCircuit.from_dict(json_dict)
+            print("Successfully loaded Qiskit QuantumCircuit from JSON")
+            return QuantumCircuit.from_qiskit(qiskit_qc)
         except Exception as e:
             raise ValueError(f"Failed to load JSON circuit: {e}")
 
