@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from app.routers.parser_handler import router as parser_router
+from app.routers.topology_retriever import router as retriever_router
 from fastapi.middleware.cors import CORSMiddleware
 
 
@@ -12,3 +13,4 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(parser_router)
+app.include_router(retriever_router)

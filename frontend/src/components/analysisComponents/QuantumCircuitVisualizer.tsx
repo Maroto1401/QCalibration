@@ -1,7 +1,7 @@
 import { Box, Text, Group, Paper, ScrollArea } from "@mantine/core";
-import { CircuitSummary, Operation } from "../types";
+import { CircuitSummary, Operation } from "../../types";
 import { Gate } from "./Gate";
-import { GATE_SPACING, MARGIN, QUBIT_SPACING } from "../GATE_CONSTANTS";
+import { GATE_SPACING, MARGIN, QUBIT_SPACING } from "../../utils/GATE_CONSTANTS";
 
 interface LayoutGate {
   operation: Operation;
@@ -48,13 +48,25 @@ export function calculateLayout(operations: Operation[], numQubits: number): Lay
 
 interface QuantumCircuitVisualizerProps {
   circuit: CircuitSummary; 
+  maxQubits?: number;
 }
 
-export function QuantumCircuitVisualizer({ circuit }: QuantumCircuitVisualizerProps) {
+export function QuantumCircuitVisualizer({ circuit, maxQubits=40 }: QuantumCircuitVisualizerProps) {
   if (!circuit || circuit.n_qubits === 0) {
     return (
       <Paper p="md" withBorder>
         <Text>No circuit data to display</Text>
+      </Paper>
+    );
+  }
+  // Warning for large circuits
+  if (circuit.n_qubits > maxQubits) {
+    return (
+      <Paper p="md" withBorder>
+        <Text color="red">
+          Circuit has {circuit.n_qubits} qubits, which is too large to visualize. 
+          Please reduce the number of qubits under {maxQubits} or use a specialized viewer.
+        </Text>
       </Paper>
     );
   }
@@ -140,18 +152,6 @@ export function QuantumCircuitVisualizer({ circuit }: QuantumCircuitVisualizerPr
       </Box>
     </ScrollArea>
   </Box>
-
-  {/* Circuit info */}
-  <Paper withBorder p="sm" mt="md">
-    <Text size="sm" mb="xs">
-      Circuit Info
-    </Text>
-    <Group>
-      <Text size="xs"><strong>Qubits:</strong> {numQubits}</Text>
-      <Text size="xs"><strong>Gates:</strong> {operations.length}</Text>
-      <Text size="xs"><strong>Depth:</strong> {depth || layout.numColumns}</Text>
-    </Group>
-  </Paper>
 </Paper>
 
   );

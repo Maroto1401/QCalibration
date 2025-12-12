@@ -1,6 +1,6 @@
 import { Card, Group, ThemeIcon, Title, Text } from "@mantine/core";
 import { IconBraces, IconFileCode, IconFileText } from "@tabler/icons-react";
-import { CircuitMetadata } from "../types"; 
+import { CircuitMetadata } from "../../types"; 
 
 export default function CircuitInfoCard({
   metadata,
@@ -9,21 +9,13 @@ export default function CircuitInfoCard({
 }) {
   const { filename, filetype } = metadata;
 
-  // Pick icon based on format
-  const Icon =
-    filetype === "json"
-      ? IconBraces
-      : filetype === "qasm3"
-      ? IconFileText
-      : IconFileCode;
+  const Icon = IconFileCode
 
   // Human-readable label
   const formatLabel =
-    filetype === "json"
-      ? "JSON Circuit"
-      : filetype === "qasm3"
-      ? "OpenQASM 3"
-      : "OpenQASM 2";
+    filetype === "qasm"
+      ? "OpenQASM 2"
+      : "OpenQASM 3";
 
   return (
     <Card padding="md" radius="md" withBorder>

@@ -1,5 +1,5 @@
 import { Text, Group, Stack } from "@mantine/core";
-import { CircuitSummary } from "../types";
+import { CircuitSummary } from "../../types";
 
 interface CircuitMetricsCirclesProps {
   summary: CircuitSummary;

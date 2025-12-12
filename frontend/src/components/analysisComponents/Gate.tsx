@@ -1,6 +1,6 @@
 import React from "react";
-import { Operation } from "../types";
-import { GATE_COLORS } from "../GATE_CONSTANTS";
+import { Operation } from "../../types";
+import { GATE_COLORS } from "../../utils/GATE_CONSTANTS";
 
 interface GateProps {
   operation: Operation;

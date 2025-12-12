@@ -1,15 +1,17 @@
-import { Container, Title, Text, Loader, Alert, Grid, Group, Divider, Stack} from "@mantine/core";
+import { Container, Title, Text, Loader, Alert, Grid, Group, Divider, Stack, Button} from "@mantine/core";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useNavigate } from 'react-router-dom';
 
-import MetricsCard from "../components/MetricsCard";
-import GateBreakdownCard from "../components/GateBreakdownCard";
-import CircuitInfoCard from "../components/CircuitInfoCard";
+import MetricsCard from "../components/analysisComponents/MetricsCard";
+import GateBreakdownCard from "../components/analysisComponents/GateBreakdownCard";
+import CircuitInfoCard from "../components/analysisComponents/CircuitInfoCard";
 
 import { CircuitData, CircuitMetadata } from "../types";
-import TwoQubitGatesBreakdownDonut from "../components/TwoQubitGatesBreakdownDonut";
+import TwoQubitGatesBreakdownDonut from "../components/analysisComponents/TwoQubitGatesBreakdownDonut";
 import { IconCircuitResistor } from "@tabler/icons-react";
-import { QuantumCircuitVisualizer } from "../components/QuantumCircuitVisualizer";
+import { QuantumCircuitVisualizer } from "../components/analysisComponents/QuantumCircuitVisualizer";
+import ToTopologyButton from "../components/analysisComponents/ToTopologyButton";
 
 
 
@@ -18,7 +20,12 @@ export default function AnalysisPage({ circuitMetadata }: { circuitMetadata: Cir
   const [circuit, setCircuit] = useState<CircuitData | null>(null);
   const [loading, setLoading] = useState(!!circuitId);
   const [error, setError] = useState<string | null>(null);
-
+  const navigate = useNavigate();
+  const goToTopology = () => {
+  if (!circuit) return;
+  navigate("/topology", { state: { circuit } });
+};
+  
   useEffect(() => {
     if (!circuitId) {
       setError("No circuit ID provided");
@@ -104,12 +111,16 @@ return (
 </Group>
 <Divider size="xs" label="A tool for researchers" labelPosition="center" />
     <Grid gutter="md">
-      <Grid.Col span={{ base: 12, md: 8, lg: 8 }}>
-        <MetricsCard summary={summary} />
-      </Grid.Col>
       <Grid.Col span={{ base: 12, md: 4, lg: 4 }}>
         <CircuitInfoCard metadata={circuitMetadata} />
       </Grid.Col>
+      <Grid.Col span={{ base: 12, md: 8, lg: 4 }}>
+        <MetricsCard summary={summary} />
+      </Grid.Col>
+      <Grid.Col span={{ base: 12, md: 8, lg: 4 }}>
+      <ToTopologyButton onClick={goToTopology} label="Add a Topology to your Circuit!" />
+      </Grid.Col>
+      
     </Grid>
     <Grid gutter="md">
 
