@@ -2,6 +2,7 @@
 import { Card, Text, Title, Stack, Badge, Group, ThemeIcon, ScrollArea } from "@mantine/core";
 import { IconNetwork } from "@tabler/icons-react";
 import { TopologyCard as TopologyCardType } from "../../types";
+import { GATE_COLORS } from "../../utils/GATE_CONSTANTS";
 
 interface Props {
   topology: TopologyCardType;
@@ -14,11 +15,14 @@ export default function TopologyCard({ topology, onSelect }: Props) {
   };
 
   const connectivityColor =
-    topology.connectivity === "high"
-      ? "green"
-      : topology.connectivity === "medium"
-      ? "yellow"
-      : "red";
+  topology.connectivity === "very high"
+    ? "blue"
+    : topology.connectivity === "high"
+    ? "green"
+    : topology.connectivity === "medium"
+    ? "yellow"
+    : "red";
+
 
   return (
     <Card
@@ -57,55 +61,28 @@ export default function TopologyCard({ topology, onSelect }: Props) {
         <Text size="sm" >
           Vendor: {topology.vendor}
         </Text>
-        <Text size="sm" >
-          Qubits: {topology.minQubits} - {topology.maxQubits}
-        </Text>
 
+        {topology.basisGates && topology.basisGates.length > 0 && (
+        <Group wrap="wrap">
+            <Text size="xs">
+            Basis Gates:
+            </Text>
+            {topology.basisGates.map((g) => (
+            <Badge
+                key={g}
+                color={GATE_COLORS[g] || "gray"}
+                variant="light"
+                size="xs"
+            >
+                {g.toUpperCase()}
+            </Badge>
+            ))}
+        </Group>
+        )}
         {/* Optional description and release date */}
         {topology.description && <Text size="sm">{topology.description}</Text>}
         {topology.releaseDate && <Text size="xs" >Release: {topology.releaseDate}</Text>}
 
-        {/* Basis gates */}
-        {topology.basisGates && topology.basisGates.length > 0 && (
-          <Text size="xs" >
-            Basis Gates: {topology.basisGates.join(", ")}
-          </Text>
-        )}
-
-        {/* Instructions */}
-        {topology.instructions && topology.instructions.length > 0 && (
-          <ScrollArea style={{ height: 80 }}>
-            <Text size="xs" >
-              Instructions: {topology.instructions.join(", ")}
-            </Text>
-          </ScrollArea>
-        )}
-
-        {/* Coupling map */}
-        {topology.coupling_map && topology.coupling_map.length > 0 && (
-          <Text size="xs" >
-            Coupling Map: {topology.coupling_map.map(([a, b]) => `[${a}-${b}]`).join(", ")}
-          </Text>
-        )}
-
-        {/* Calibration data */}
-        {topology.calibrationData && (
-          <>
-            <Text size="xs" >Qubit Calibration:</Text>
-            <Text size="xs" >
-              {topology.calibrationData.qubits.map(q => 
-                `Q${q.qubit}: T1=${q.t1 ?? 'N/A'}, T2=${q.t2 ?? 'N/A'}, Freq=${q.frequency ?? 'N/A'}, ReadoutErr=${q.readout_error ?? 'N/A'}`
-              ).join(" | ")}
-            </Text>
-
-            <Text size="xs" >Gate Calibration:</Text>
-            <Text size="xs" >
-              {topology.calibrationData.gates.map(g =>
-                `${g.name} [Q${g.qubits.join(",")}]: Error=${g.gate_error ?? 'N/A'}, Duration=${g.duration ?? 'N/A'}`
-              ).join(" | ")}
-            </Text>
-          </>
-        )}
       </Stack>
     </Card>
   );

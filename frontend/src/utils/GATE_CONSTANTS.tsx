@@ -1,5 +1,6 @@
 // Gate rendering constants
 export const GATE_COLORS: Record<string, string> = {
+  id: "#384040ff",
   h: "#4A90E2",
   x: "#E74C3C",
   y: "#F39C12",
@@ -10,6 +11,7 @@ export const GATE_COLORS: Record<string, string> = {
   cx: "#27AE60",
   cy: "#8E44AD",
   cz: "#C0392B",
+  sx: "#2ECC71",
   swap: "#D35400",
   measure: "#34495E",
   barrier: "#95A5A6",

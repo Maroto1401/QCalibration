@@ -4,7 +4,6 @@ from typing import List, Dict, Tuple
 import os
 from dotenv import load_dotenv
 
-
 def fetch_ibm_topologies() -> List[Dict]:
     """
     Fetch all available IBM Quantum backends and return JSON-safe TopologyCard dicts.
@@ -15,8 +14,9 @@ def fetch_ibm_topologies() -> List[Dict]:
         instance=os.environ["IBM_QUANTUM_CRN"]
     )
     topologies = []
+    backends = service.backends(simulator=False)
 
-    for backend in service.backends(simulator=False):
+    for backend in backends:
         config = backend.configuration()
         status = backend.status()
         properties = backend.properties()
@@ -61,8 +61,7 @@ def fetch_ibm_topologies() -> List[Dict]:
             "description": f"{config.n_qubits}-qubit backend",
             "coupling_map": config.coupling_map,  # list of tuples
             "connectivity": classify_connectivity(config.coupling_map, config.n_qubits),
-            "minQubits": config.n_qubits,
-            "maxQubits": config.n_qubits,
+            "numQubits": config.n_qubits,
             "basisGates": getattr(config, "basis_gates", []),
             "instructions": safe_instructions,
             "calibrationData": {
@@ -75,30 +74,33 @@ def fetch_ibm_topologies() -> List[Dict]:
 
     return topologies
 
-
-
 def classify_connectivity(coupling_map: List[Tuple[int, int]], num_qubits: int) -> str:
     """
-    Classify connectivity of a backend as 'low', 'medium', or 'high'.
+    Classify connectivity of a backend based on average connections per qubit.
 
     Args:
         coupling_map: list of 2-tuples representing connections between qubits
         num_qubits: total number of qubits
 
     Returns:
-        str: 'low', 'medium', or 'high'
+        str: 'low', 'medium', 'high', or 'very high'
     """
     if num_qubits <= 1:
         return "low"
 
-    max_edges = num_qubits * (num_qubits - 1) / 2  # fully connected graph
-    actual_edges = len(coupling_map)
+    # Count connections per qubit
+    connection_counts = [0] * num_qubits
+    for q1, q2 in coupling_map:
+        connection_counts[q1] += 1
+        connection_counts[q2] += 1
 
-    connectivity_ratio = actual_edges / max_edges
+    avg_connections = sum(connection_counts) / num_qubits
 
-    if connectivity_ratio < 0.3:
+    if avg_connections < 3:
         return "low"
-    elif connectivity_ratio < 0.7:
+    elif avg_connections < 5:
         return "medium"
-    else:
+    elif avg_connections < 8:
         return "high"
+    else:
+        return "very high"

@@ -58,11 +58,10 @@ export interface TopologyCard {
   available: boolean;
   description?: string;
 
-  minQubits: number;
-  maxQubits: number;
+  numQubits: number;
 
   coupling_map: [number, number][];
-  connectivity: "low" | "medium" | "high";
+  connectivity: "low" | "medium" | "high" | "very high";
 
   basisGates?: string[];
   instructions?: string[];   // backend.instructions is just names
