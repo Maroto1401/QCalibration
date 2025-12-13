@@ -6,6 +6,7 @@ import AnalysisPage from './pages/AnalysisPage';
 import '@mantine/core/styles.css';
 import { CircuitMetadata } from './types';
 import TopologyPage from './pages/TopologyPage';
+import TopologyView from './components/topologyComponents/TopologyView';
 
 export default function App() {
   const [circuitMetadata, setCircuitMetadata] = useState<CircuitMetadata | null>(null);
@@ -29,6 +30,8 @@ export default function App() {
             }
           />
           <Route path="/topology" element={<TopologyPage />} />
+          <Route path="/topology/preview" element={<TopologyView />} />
+
         </Routes>
       </BrowserRouter>
     </MantineProvider>

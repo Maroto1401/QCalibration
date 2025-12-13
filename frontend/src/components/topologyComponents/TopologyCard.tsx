@@ -1,27 +1,31 @@
 // TopologyCard.tsx
-import { Card, Text, Title, Stack, Badge, Group, ThemeIcon, ScrollArea } from "@mantine/core";
+import { Card, Text, Title, Stack, Badge, Group, ThemeIcon, Button } from "@mantine/core";
 import { IconNetwork } from "@tabler/icons-react";
-import { TopologyCard as TopologyCardType } from "../../types";
+import { Topology } from "../../types";
 import { GATE_COLORS } from "../../utils/GATE_CONSTANTS";
+import { useNavigate } from "react-router-dom";
+import { getConnectivityMeta } from "../../utils/functions";
 
 interface Props {
-  topology: TopologyCardType;
+  topology: Topology;
   onSelect?: (id: string) => void;
 }
 
 export default function TopologyCard({ topology, onSelect }: Props) {
+  const navigate = useNavigate();
+
   const handleClick = () => {
     if (onSelect) onSelect(topology.id);
   };
 
-  const connectivityColor =
-  topology.connectivity === "very high"
-    ? "blue"
-    : topology.connectivity === "high"
-    ? "green"
-    : topology.connectivity === "medium"
-    ? "yellow"
-    : "red";
+  const handlePreview = (e: React.MouseEvent) => {
+  e.stopPropagation();
+  navigate("/topology/preview", {
+    state: { topology },
+  });
+};
+
+  const connectivity = getConnectivityMeta(topology.connectivity);
 
 
   return (
@@ -31,7 +35,7 @@ export default function TopologyCard({ topology, onSelect }: Props) {
       radius="md"
       withBorder
       style={{ cursor: onSelect ? "pointer" : "default" }}
-      onClick={handleClick}
+      // onClick={handleClick} Uncomment to add a click handler on the Card
       styles={(theme) => ({
         root: {
           transition: "transform 0.2s, box-shadow 0.2s",
@@ -47,14 +51,17 @@ export default function TopologyCard({ topology, onSelect }: Props) {
         {/* Header */}
         <Group >
           <Group>
-            <ThemeIcon size={30} radius="xl" color={connectivityColor} variant="light">
+            <ThemeIcon size={30} radius="xl" color={connectivity.color} variant="light">
               <IconNetwork size={18} />
             </ThemeIcon>
             <Title order={4}>{topology.name}</Title>
           </Group>
-          <Badge color={connectivityColor} variant="light">
-            {topology.connectivity.toUpperCase()}
-          </Badge>
+          <Badge
+            variant="light"
+            color={connectivity.color}
+            >
+            {connectivity.label}
+        </Badge>
         </Group>
 
         {/* Vendor and Qubits */}
@@ -81,7 +88,19 @@ export default function TopologyCard({ topology, onSelect }: Props) {
         )}
         {/* Optional description and release date */}
         {topology.description && <Text size="sm">{topology.description}</Text>}
-        {topology.releaseDate && <Text size="xs" >Release: {topology.releaseDate}</Text>}
+        {topology.releaseDate && (
+          <Group
+    style={{
+      display: "flex",
+      justifyContent: "space-between",
+    }}
+  >
+            <Text size="xs">Release: {topology.releaseDate}</Text>
+            <Button size="xs" variant="light" onClick={handlePreview}>
+              Preview
+            </Button>
+          </Group>
+        )}
 
       </Stack>
     </Card>

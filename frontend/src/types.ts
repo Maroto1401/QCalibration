@@ -50,7 +50,7 @@ export interface CalibrationData {
   gates: GateCalibration[];
 }
 
-export interface TopologyCard {
+export interface Topology {
   id: string;
   name: string;
   vendor: string;

@@ -8,11 +8,11 @@ import {
   Divider,
 } from "@mantine/core";
 import { IconNetwork, IconSearch } from "@tabler/icons-react";
-import { TopologyCard as TopologyCardType } from "../../types";
+import { Topology } from "../../types";
 import TopologyCard from "./TopologyCard"; // import the card component
 
 interface TopologySelectorProps {
-  topologies: TopologyCardType[];
+  topologies: Topology[];
   onSelect: (topologyId: string) => void;
 }
 
@@ -27,7 +27,7 @@ export default function TopologySelector({ topologies, onSelect }: TopologySelec
   );
 
   // Group by vendor
-  const groupedByVendor = filteredTopologies.reduce<Record<string, TopologyCardType[]>>(
+  const groupedByVendor = filteredTopologies.reduce<Record<string, Topology[]>>(
     (acc, topo) => {
       if (!acc[topo.vendor]) acc[topo.vendor] = [];
       acc[topo.vendor].push(topo);

@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { Container, Title, Text, Loader, Center } from "@mantine/core";
+import { Container, Text, Loader, Center } from "@mantine/core";
 import TopologySelector from "../components/topologyComponents/TopologySelector";
-import { TopologyCard } from "../types";
+import { Topology } from "../types";
 
 export default function TopologyPage() {
-  const [topologies, setTopologies] = useState<TopologyCard[]>([]);
+  const [topologies, setTopologies] = useState<Topology[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTopology, setSelectedTopology] = useState<string | null>(null);
@@ -20,7 +20,7 @@ export default function TopologyPage() {
       }
 
       const raw = await response.json();
-      const list = Object.values(raw) as TopologyCard[];
+      const list = Object.values(raw) as Topology[];
       setTopologies(list);
     } catch (err: any) {
       setError(err.message || "Failed to fetch topologies");
@@ -40,17 +40,16 @@ export default function TopologyPage() {
   };
   return (
     <Container size="lg" py="xl">
-      <Title order={2} mb="md">
-        Quantum Circuit Topology
-      </Title>
-
-      <Text mb="lg">Visual representation and details of your topology.</Text>
 
       {loading && (
-        <Center>
-          <Loader size="lg" />
-        </Center>
-      )}
+  <Center style={{ flexDirection: "column", gap: 8 }}>
+    <Loader size="lg" />
+    <Text size="sm" color="dimmed">
+      Loading topologies, please wait a moment...
+    </Text>
+  </Center>
+)}
+
 
       {error && <Text>{error}</Text>}
 
@@ -65,13 +64,6 @@ export default function TopologyPage() {
     )}
   </>
 )}
-
-
-      {selectedTopology && (
-        <Text>
-          Selected Topology ID: <strong>{selectedTopology}</strong>
-        </Text>
-      )}
     </Container>
   );
 }
