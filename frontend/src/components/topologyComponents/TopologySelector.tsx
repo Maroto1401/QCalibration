@@ -8,15 +8,16 @@ import {
   Divider,
 } from "@mantine/core";
 import { IconNetwork, IconSearch } from "@tabler/icons-react";
-import { Topology } from "../../types";
+import { CircuitData, Topology } from "../../types";
 import TopologyCard from "./TopologyCard"; // import the card component
 
 interface TopologySelectorProps {
   topologies: Topology[];
+  circuit: CircuitData;
   onSelect: (topologyId: string) => void;
 }
 
-export default function TopologySelector({ topologies, onSelect }: TopologySelectorProps) {
+export default function TopologySelector({ topologies, circuit, onSelect }: TopologySelectorProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Filter topologies by search query (name or vendor)
@@ -83,6 +84,7 @@ export default function TopologySelector({ topologies, onSelect }: TopologySelec
                 <Grid.Col key={topology.id} span={{ base: 12, md: 6, lg: 4 }}>
                   <TopologyCard
                     topology={topology}
+                    circuit={circuit}
                     onSelect={onSelect}
                   />
                 </Grid.Col>

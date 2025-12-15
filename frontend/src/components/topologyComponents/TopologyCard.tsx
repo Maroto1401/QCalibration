@@ -1,29 +1,27 @@
 // TopologyCard.tsx
 import { Card, Text, Title, Stack, Badge, Group, ThemeIcon, Button } from "@mantine/core";
 import { IconNetwork } from "@tabler/icons-react";
-import { Topology } from "../../types";
+import { CircuitData, Topology } from "../../types";
 import { GATE_COLORS } from "../../utils/GATE_CONSTANTS";
 import { useNavigate } from "react-router-dom";
 import { getConnectivityMeta } from "../../utils/functions";
 
 interface Props {
   topology: Topology;
+  circuit: CircuitData;
   onSelect?: (id: string) => void;
 }
 
-export default function TopologyCard({ topology, onSelect }: Props) {
+export default function TopologyCard({ topology, circuit, onSelect }: Props) {
   const navigate = useNavigate();
-
-  const handleClick = () => {
-    if (onSelect) onSelect(topology.id);
-  };
-
+  
   const handlePreview = (e: React.MouseEvent) => {
   e.stopPropagation();
   navigate("/topology/preview", {
-    state: { topology },
+    state: { topology, circuit },
   });
 };
+
 
   const connectivity = getConnectivityMeta(topology.connectivity);
 

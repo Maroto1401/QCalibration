@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Container, Text, Loader, Center } from "@mantine/core";
 import TopologySelector from "../components/topologyComponents/TopologySelector";
-import { Topology } from "../types";
+import { Topology, CircuitData } from "../types";
+import { useLocation } from "react-router-dom";
 
 export default function TopologyPage() {
   const [topologies, setTopologies] = useState<Topology[]>([]);
@@ -34,6 +35,8 @@ export default function TopologyPage() {
   }, []);
   console.log("Fetched topologies:", topologies);
 
+  const location = useLocation();
+  const { circuit } = location.state as { circuit: CircuitData };
   const handleSelectTopology = (topologyId: string) => {
     setSelectedTopology(topologyId);
     console.log("Selected topology:", topologyId);
@@ -56,7 +59,7 @@ export default function TopologyPage() {
       {!loading && !error && !selectedTopology && (
   <>
     {topologies.length > 0 ? (
-      <TopologySelector topologies={topologies} onSelect={handleSelectTopology} />
+      <TopologySelector topologies={topologies} circuit={circuit} onSelect={handleSelectTopology} />
     ) : (
       <Text mt="xl">
         No topologies available.

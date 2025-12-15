@@ -15,21 +15,23 @@ export default function TopologyView() {
   const state = location.state as TopologyViewProps | null;
 
   const goToTranspilationSelector = () => {
-    if (!state?.topology) return;
-    navigate("/transpilation-selector", { state: { topology } });
+    if (!state?.topology || !state?.circuit) return;
+    navigate("/transpilation-selector", { state: {
+      topology: state.topology,
+      circuit: state.circuit,
+    },});
   };
 
-  if (!state?.topology) {
-    // Safety fallback (refresh / direct URL access)
-    return (
-      <>
-        <Text>No topology data provided.</Text>
-        <Button onClick={() => navigate(-1)}>Go back</Button>
-      </>
-    );
-  }
+  if (!state?.topology || !state?.circuit) {
+  return (
+    <>
+      <Text>Missing topology or circuit data.</Text>
+      <Button onClick={() => navigate(-1)}>Go back</Button>
+    </>
+  );
+}
 
-  const { topology } = state;
+const { topology, circuit } = state;
 
   return (
     <Container size="lg" py="md">

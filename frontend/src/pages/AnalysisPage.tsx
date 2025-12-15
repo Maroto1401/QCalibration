@@ -25,7 +25,7 @@ export default function AnalysisPage({ circuitMetadata }: { circuitMetadata: Cir
   if (!circuit) return;
   navigate("/topology", { state: { circuit } });
 };
-  
+
   useEffect(() => {
     if (!circuitId) {
       setError("No circuit ID provided");

@@ -12,24 +12,35 @@ interface TranspilerOption {
   value: string;
 }
 
-interface Props {
-  circuit: CircuitData;
-  topology: Topology;
-}
 
-export function TranspilationSelector({ circuit, topology }: Props) {
+export default function TranspilationSelector() {
   const location = useLocation();
-  const state = location.state as { circuit: CircuitData; topology: Topology } | null;
   const navigate = useNavigate();
   const theme = useMantineTheme();
   const smallerScreen = useMediaQuery(`(max-width: ${theme.breakpoints.md}px)`);
+  const [selectedTranspiler, setSelectedTranspiler] = useState<string | undefined>(undefined);
+
+  const state = location.state as {
+    topology: Topology;
+    circuit: CircuitData;
+  } | null;
+
+  if (!state?.topology || !state?.circuit) {
+    return (
+      <Container>
+        <Text>Missing circuit or topology data.</Text>
+        <Button onClick={() => navigate(-1)}>Go back</Button>
+      </Container>
+    );
+  }
+
+  const { topology, circuit } = state;
 
   const transpilerOptions: TranspilerOption[] = [
     { label: "Transpiler A", description: "Optimized for depth", value: "transpilerA" },
     { label: "Transpiler B", description: "Optimized for fidelity", value: "transpilerB" },
   ];
 
-  const [selectedTranspiler, setSelectedTranspiler] = useState<string | undefined>(undefined);
 
   const handleStartTranspilation = () => {
     if (!selectedTranspiler) return;
@@ -47,7 +58,7 @@ export function TranspilationSelector({ circuit, topology }: Props) {
           circuit={circuit}
           metadata={{ filename: "Uploaded Circuit", filetype: "qasm", circuit_id: circuit.circuit_id }}
         />
-        <TopologyCard topology={topology} />
+        <TopologyCard topology={topology} circuit={circuit}/>
       </SimpleGrid>
 
       {/* Transpiler selection */}
@@ -80,4 +91,3 @@ export function TranspilationSelector({ circuit, topology }: Props) {
   );
 }
 
-export default TranspilationSelector;

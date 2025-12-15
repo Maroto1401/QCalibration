@@ -32,7 +32,7 @@ export default function App() {
           />
           <Route path="/topology" element={<TopologyPage />} />
           <Route path="/topology/preview" element={<TopologyView />} />
-          <Route path="/transpilation-selector" element={<div> Page under construction</div>} />
+          <Route path="/transpilation-selector" element={<TranspilationSelector />} />
 
         </Routes>
       </BrowserRouter>
