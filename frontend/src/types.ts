@@ -59,7 +59,7 @@ export interface Topology {
   description?: string;
 
   numQubits: number;
-
+  topology_layout?: "heavy-hex" | "grid" | "unknown";
   coupling_map: [number, number][];
   connectivity: "low" | "medium" | "high" | "very high";
 

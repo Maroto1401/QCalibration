@@ -2,11 +2,28 @@ import React, { useMemo } from "react";
 import ReactECharts from "echarts-for-react";
 import { Stack, Text, Box, Paper, Badge, Group } from "@mantine/core";
 import { Topology } from "../../types";
-import { errorToColor, errorToWidth } from "../../utils/functions";
+import { errorToColor, errorToWidth, computeHeavyHexPositions } from "../../utils/functions";
+import { ErrorOneNote } from "./TopologyOneErrorRate";
+import { SegmentedControl, Slider } from "@mantine/core";
+import { useState } from "react";
 
 interface Props {
   topology: Topology;
 }
+
+type EdgeStatus = "all" | "available" | "obsolete";
+
+function isObsoleteError(error: number | null | undefined): boolean {
+  return error === 1;
+}
+function isAvailableEdge(error: number | null): boolean {
+  return error !== null && error >= 0 && error < 1;
+}
+
+function isObsoleteEdge(error: number | null, obsolete: boolean): boolean {
+  return obsolete && error === null;
+}
+
 
 // Filter out invalid error rates (1.0 means gate not operational)
 function isValidError(error: number | null | undefined): boolean {
@@ -14,6 +31,11 @@ function isValidError(error: number | null | undefined): boolean {
 }
 
 export function TopologyConnectivityMap({ topology }: Props) {
+    const [edgeStatus, setEdgeStatus] =
+    useState<"all" | "available" | "obsolete">("all");
+
+  const [maxError, setMaxError] = useState(0.05);
+
   const option = useMemo(() => {
     if (!topology.calibrationData) return {};
 
@@ -23,27 +45,49 @@ export function TopologyConnectivityMap({ topology }: Props) {
     const qubitMap = new Map(qubits.map((q) => [q.qubit, q]));
 
     // --- Gate calibration lookup (CZ gates)
-    const gateMap = new Map<string, number | null>();
+    const gateMap = new Map<
+  string,
+  { error: number | null; obsolete: boolean }
+>();
+
     gates
-      .filter((g) => g.name === "cz" && g.qubits.length === 2)
-      .forEach((g) => {
+    .filter((g) => g.name === "cz" && g.qubits.length === 2)
+    .forEach((g) => {
         const key1 = `${g.qubits[0]}-${g.qubits[1]}`;
         const key2 = `${g.qubits[1]}-${g.qubits[0]}`;
-        const error = isValidError(g.gate_error) ? g.gate_error : null;
-        gateMap.set(key1, error);
-        gateMap.set(key2, error);
-      });
 
-    // --- Nodes
+        const obsolete = isObsoleteError(g.gate_error);
+        const valid = isValidError(g.gate_error);
+
+        gateMap.set(key1, {
+        error: valid ? g.gate_error! : null,
+        obsolete,
+        });
+        gateMap.set(key2, {
+        error: valid ? g.gate_error! : null,
+        obsolete,
+        });
+    });
+
+
+    const positions =
+    topology.topology_layout === "heavy-hex"
+        ? computeHeavyHexPositions(topology.numQubits)
+        : null;
+
     const nodes = Array.from({ length: topology.numQubits }).map((_, i) => {
-      const q = qubitMap.get(i);
-      const readoutError = q?.readout_error;
-      const validReadout = isValidError(readoutError);
+    const q = qubitMap.get(i);
+    const readoutError = q?.readout_error;
+    const validReadout = isValidError(readoutError);
+    const pos = positions?.[i]
+
       
       return {
         id: String(i),
         name: String(i),
         symbolSize: 30,
+        x: pos?.x,
+        y: pos?.y,
         itemStyle: { 
           color: validReadout ? errorToColor(readoutError ?? null) : '#95a5a6',
           borderColor: '#fff',
@@ -70,24 +114,47 @@ export function TopologyConnectivityMap({ topology }: Props) {
         if (addedEdges.has(key)) return null;
         addedEdges.add(key);
 
-        const error = gateMap.get(key) ?? null;
+        const gateInfo = gateMap.get(key);
+        const error = gateInfo?.error ?? null;
+        const obsolete = gateInfo?.obsolete ?? false;
         const validError = isValidError(error);
+
+        // --- FILTERING ---
+        if (edgeStatus === "available" && !validError) return null;
+        if (edgeStatus === "obsolete" && !obsolete) return null;
+
+        // Slider filter (applies only to valid edges)
+        if (validError && error! > maxError) return null;
         
         return {
           source: String(a),
           target: String(b),
           lineStyle: {
-            color: validError ? errorToColor(error) : '#95a5a6',
-            width: validError ? errorToWidth(error) : 2,
-            curveness: 0,
-            opacity: validError ? 0.7 : 0.3,
-          },
+            color: obsolete
+            ? "#000"
+            : validError
+            ? errorToColor(error)
+            : "#95a5a6",
+            width: validError
+                ? errorToWidth(error)
+                : obsolete
+                ? 1.5
+                : 2,
+            type: obsolete ? "dashed" : "solid",
+            opacity: obsolete ? 0.6 : validError ? 0.7 : 0.3,
+            },
+
           emphasis: {
             lineStyle: {
-              width: validError ? errorToWidth(error) * 1.5 : 3,
-              opacity: 1,
-            }
-          },
+                width: obsolete
+                ? 2
+                : validError
+                    ? errorToWidth(error) * 1.5
+                    : 3,
+                opacity: 1,
+            },
+            },
+
           value: error,
           validError,
         };
@@ -137,7 +204,7 @@ export function TopologyConnectivityMap({ topology }: Props) {
       series: [
         {
           type: "graph",
-          layout: "force",
+          layout: "none",
           force: {
             repulsion: 2000,
             edgeLength: [150, 250],
@@ -169,12 +236,12 @@ export function TopologyConnectivityMap({ topology }: Props) {
           animation: true,
           animationDuration: 1500,
           animationEasingUpdate: "cubicOut",
-          zoom: 0.45,
-          center: ['50%', '50%'],
+          zoom: 1.2,
+          center: ['60%', '50%'],
         },
       ],
     };
-  }, [topology]);
+  }, [topology, edgeStatus, maxError]);
 
   // Calculate statistics for CZ gates only
   const czStats = useMemo(() => {
@@ -239,6 +306,34 @@ export function TopologyConnectivityMap({ topology }: Props) {
           <Text fw={600} size="lg">Connectivity Map</Text>
           <Text size="xs" c="dimmed">{topology.numQubits} qubits, {topology.coupling_map.length} connections</Text>
         </div>
+        <Group align="flex-start">
+  <Text size="s"  mt={2}>
+    Gate Filter:
+  </Text>
+        <Stack gap={6}>
+  <SegmentedControl
+    size="xs"
+    value={edgeStatus}
+    onChange={(v) => setEdgeStatus(v as EdgeStatus)}
+    data={[
+      { label: "All", value: "all" },
+      { label: "Available", value: "available" },
+      { label: "Obsolete", value: "obsolete" },
+    ]}
+  />
+
+  <Slider
+    size="xs"
+    min={0}
+    max={1}
+    step={0.001}
+    value={maxError}
+    onChange={setMaxError}
+    label={(v) => `${(v * 100).toFixed(2)}%`}
+    disabled={edgeStatus === "obsolete"}
+  />
+</Stack>
+</Group>
       </Group>
 
       <Box style={{ flex: 1, minHeight: 0, position: "relative" }}>
@@ -280,8 +375,8 @@ export function TopologyConnectivityMap({ topology }: Props) {
               <Text size="xs" c="dimmed">Color and width represents error</Text>
               {czStats && (
             <Stack gap={4}>
-              <Text size="sm" fw={600}>CZ Gates</Text>
-              <Text size="xs" c="dimmed">{czStats.count}/{czStats.total} operational</Text>
+              <Text size="xs" fw={600}>CZ Gates Errors Stats</Text>
+              <Text size="xs" c="dimmed">{czStats.count}/{czStats.total} calibrated</Text>
               <Group justify="apart" gap="xs">
                 <Text size="xs" c="dimmed">Avg:</Text>
                 <Badge size="sm" variant="light">{(czStats.avg * 100).toFixed(3)}%</Badge>
@@ -310,8 +405,11 @@ export function TopologyConnectivityMap({ topology }: Props) {
 
     
       <Text size="xs" c="dimmed" ta="center">
-        Drag nodes • Scroll to zoom • Click for details • Gray = not operational
+        Drag nodes • Scroll to zoom • Hover for details • Black-Dashed line = not calibrated
       </Text>
+      <ErrorOneNote></ErrorOneNote>
     </Stack>
+
   );
 }
+

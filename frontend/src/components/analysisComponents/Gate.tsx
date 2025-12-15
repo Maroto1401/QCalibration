@@ -1,4 +1,3 @@
-import React from "react";
 import { Operation } from "../../types";
 import { GATE_COLORS } from "../../utils/GATE_CONSTANTS";
 

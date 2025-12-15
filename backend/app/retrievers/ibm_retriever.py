@@ -59,6 +59,7 @@ def fetch_ibm_topologies() -> List[Dict]:
             "releaseDate": str(backend.backend_version),
             "available": status.operational,
             "description": f"{config.n_qubits}-qubit backend",
+            "topology_layout": "heavy-hex",  
             "coupling_map": config.coupling_map,  # list of tuples
             "connectivity": classify_connectivity(config.coupling_map, config.n_qubits),
             "numQubits": config.n_qubits,
