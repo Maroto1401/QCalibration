@@ -1,5 +1,5 @@
 import { Card, Text, Title, Stack, Badge, Group, ThemeIcon, Button } from "@mantine/core";
-import { IconNetwork } from "@tabler/icons-react"; // or use IconNetwork
+import { IconNetwork } from "@tabler/icons-react"; 
 import { CircuitData, CircuitMetadata } from "../../types";
 import { useNavigate } from "react-router-dom";
 

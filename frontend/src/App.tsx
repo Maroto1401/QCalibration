@@ -7,7 +7,7 @@ import '@mantine/core/styles.css';
 import { CircuitMetadata } from './types';
 import TopologyPage from './pages/TopologyPage';
 import TopologyView from './components/topologyComponents/TopologyView';
-import TranspilationSelector from './pages/TranspilationSelector';
+import TranspilationSelectorPage from './pages/TranspilationSelectorPage';
 
 export default function App() {
   const [circuitMetadata, setCircuitMetadata] = useState<CircuitMetadata | null>(null);
@@ -32,7 +32,7 @@ export default function App() {
           />
           <Route path="/topology" element={<TopologyPage />} />
           <Route path="/topology/preview" element={<TopologyView />} />
-          <Route path="/transpilation-selector" element={<TranspilationSelector />} />
+          <Route path="/transpilation-selector" element={<TranspilationSelectorPage />} />
 
         </Routes>
       </BrowserRouter>

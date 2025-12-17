@@ -70,3 +70,16 @@ export interface Topology {
 
   iconName?: string;
 }
+
+export interface TranspilationResult {
+  algorithm: string;
+  status: 'pending' | 'running' | 'completed' | 'error';
+  circuit?: CircuitSummary;
+  metrics?: {
+    error_rate: number;
+    gates_inserted: number;
+    depth_increase: number;
+    execution_time: number;
+    fidelity: number;
+  };
+}
