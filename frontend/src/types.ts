@@ -72,14 +72,24 @@ export interface Topology {
 }
 
 export interface TranspilationResult {
+  transpiled_circuit_id: string;
   algorithm: string;
-  status: 'pending' | 'running' | 'completed' | 'error';
-  circuit?: CircuitSummary;
-  metrics?: {
-    error_rate: number;
+  embedding: Record<number, number>;
+  metrics: {
+    execution_time: number;       // total duration in ms
+    gate_error: number;           // accumulated gate error
+    decoherence_risk: number;     // risk based on T1/T2 and execution time
+    readout_error: number;        // expected measurement error
+    effective_error: number;      // total effective error
+    fidelity: number;             // expected circuit fidelity
     gates_inserted: number;
     depth_increase: number;
-    execution_time: number;
-    fidelity: number;
+    n_swap_gates: number;
+    n_cx_gates: number;
+    total_gates: number;
+    original_depth: number;
+    transpiled_depth: number;
   };
+  summary: CircuitSummary;
+  error?: string;                 // optional, if status = 'error'
 }

@@ -6,7 +6,8 @@ from dotenv import load_dotenv
 
 def fetch_ibm_topologies() -> List[Dict]:
     """
-    Fetch all available IBM Quantum backends and return JSON-safe TopologyCard dicts.
+    Fetch all available IBM Quantum backends and return JSON-safe TopologyCard dicts
+    with gate durations in seconds and qubit properties in proper units.
     """
     load_dotenv()
     service = QiskitRuntimeService(
@@ -20,36 +21,45 @@ def fetch_ibm_topologies() -> List[Dict]:
         config = backend.configuration()
         status = backend.status()
         properties = backend.properties()
+        dt = getattr(config, "dt", 1.0)  # dt in seconds
 
-        # Safe instructions: convert any Qiskit object to string
+        # Safe instructions
         safe_instructions = [str(instr) for instr in getattr(backend, "instructions", [])]
 
-        # Safe gates
+        # Safe gates with duration in seconds
         safe_gates = []
         for g in getattr(properties, "gates", []):
+            duration_dt = next(
+                (p.value for p in getattr(g, "parameters", []) if getattr(p, "name", "") in ["gate_length", "duration"]),
+                None
+            )
+            duration_seconds = duration_dt * dt if duration_dt is not None else None
+            gate_error = next(
+                (p.value for p in getattr(g, "parameters", []) if getattr(p, "name", "") == "gate_error"),
+                None
+            )
+
             safe_gates.append({
                 "name": getattr(g, "gate", str(g)),
                 "qubits": getattr(g, "qubits", []),
-                "gate_error": next(
-                    (p.value for p in getattr(g, "parameters", []) if getattr(p, "name", "") == "gate_error"),
-                    None
-                ),
-                "duration": next(
-                    (p.value for p in getattr(g, "parameters", []) if getattr(p, "name", "") in ["gate_length", "duration"]),
-                    None
-                ),
+                "gate_error": gate_error,
+                "duration": duration_seconds,
                 "parameters": {getattr(p, "name", str(p)): getattr(p, "value", None) for p in getattr(g, "parameters", [])}
             })
 
         # Safe qubits
         safe_qubits = []
-        for i, q in enumerate(getattr(properties, "qubits", [])):
+        for i, qubit_params in enumerate(getattr(properties, "qubits", [])):
+            t1 = next((p.value for p in qubit_params if getattr(p, "name", "") == "T1"), None)
+            t2 = next((p.value for p in qubit_params if getattr(p, "name", "") == "T2"), None)
+            freq = next((p.value for p in qubit_params if getattr(p, "name", "") == "frequency"), None)
+            readout_error = next((p.value for p in qubit_params if getattr(p, "name", "") == "readout_error"), None)
             safe_qubits.append({
                 "qubit": i,
-                "t1": q[0].value if len(q) > 0 else None,
-                "t2": q[1].value if len(q) > 1 else None,
-                "frequency": q[2].value if len(q) > 2 else None,
-                "readout_error": q[3].value if len(q) > 3 else None,
+                "t1": t1 * 1e-6,                # seconds
+                "t2": t2 * 1e-6,                # seconds
+                "frequency": freq,       # Hz
+                "readout_error": readout_error
             })
 
         topology = {
@@ -59,8 +69,8 @@ def fetch_ibm_topologies() -> List[Dict]:
             "releaseDate": str(backend.backend_version),
             "available": status.operational,
             "description": f"{config.n_qubits}-qubit backend",
-            "topology_layout": "heavy-hex",  
-            "coupling_map": config.coupling_map,  # list of tuples
+            "topology_layout": "heavy-hex",
+            "coupling_map": config.coupling_map,
             "connectivity": classify_connectivity(config.coupling_map, config.n_qubits),
             "numQubits": config.n_qubits,
             "basisGates": getattr(config, "basis_gates", []),
@@ -75,21 +85,14 @@ def fetch_ibm_topologies() -> List[Dict]:
 
     return topologies
 
+
 def classify_connectivity(coupling_map: List[Tuple[int, int]], num_qubits: int) -> str:
     """
     Classify connectivity of a backend based on average connections per qubit.
-
-    Args:
-        coupling_map: list of 2-tuples representing connections between qubits
-        num_qubits: total number of qubits
-
-    Returns:
-        str: 'low', 'medium', 'high', or 'very high'
     """
     if num_qubits <= 1:
         return "low"
 
-    # Count connections per qubit
     connection_counts = [0] * num_qubits
     for q1, q2 in coupling_map:
         connection_counts[q1] += 1

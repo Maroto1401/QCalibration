@@ -7,8 +7,8 @@ export const TranspilationOptionsSelector: React.FC<{
   const [selectedAlgorithms, setSelectedAlgorithms] = useState<string[]>(['sabre', 'stochastic']);
   
   const algorithms = [
+    { id: 'naive', name: 'Naive', description: 'Simple greedy approach' },
     { id: 'sabre', name: 'SABRE', description: 'Heuristic bidirectional search' },
-    { id: 'stochastic', name: 'Stochastic', description: 'Random path selection' },
     { id: 'lookahead', name: 'Lookahead', description: 'Forward-looking optimization' },
     { id: 'basic', name: 'Basic', description: 'Simple greedy approach' },
   ];

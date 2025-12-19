@@ -10,15 +10,15 @@ export const AlgorithmSelector: React.FC<{
   
   const algorithms = [
     { 
-      id: 'sabre', 
-      name: 'SABRE', 
-      description: 'Heuristic bidirectional search algorithm for optimal qubit routing',
+      id: 'naive', 
+      name: 'Naive Swap', 
+      description: 'Simple greedy approach for quick transpilation',
       recommended: true 
     },
     { 
-      id: 'stochastic', 
-      name: 'Stochastic Swap', 
-      description: 'Randomized approach using Monte Carlo methods',
+      id: 'sabre', 
+      name: 'SABRE', 
+      description: 'Heuristic bidirectional search algorithm for optimal qubit routing',
       recommended: true 
     },
     { 

@@ -1,6 +1,6 @@
 import { Button, Card, Group, Stack, Text } from "@mantine/core";
 import { IconChartLine, IconRefresh, IconTable } from "@tabler/icons-react";
-import {TranspilationResult } from "../../types";
+import { TranspilationResult } from "../../types";
 import { useState } from "react";
 import { TranspilationStatsTable } from "./TranspilationStatsTable";
 import { TranspilationStatsChart } from "./TranspilationStatsChart";
@@ -12,8 +12,9 @@ export const TranspilationTabContent: React.FC<{
   onTranspile: () => void;
 }> = ({ result, originalCircuit, isDefault, onTranspile }) => {
   const [viewMode, setViewMode] = useState<'table' | 'chart'>('table');
-  
-  if (result.status === 'pending' && !isDefault) {
+
+  // Pending state for non-default algorithms
+  if (!isDefault && (!result.metrics || !result.summary)) {
     return (
       <Card withBorder>
         <Stack align="center" gap="md" py="xl">
@@ -30,8 +31,9 @@ export const TranspilationTabContent: React.FC<{
       </Card>
     );
   }
-  
-  if (result.status === 'running') {
+
+  // Running state
+  if (!result.metrics || !result.summary) {
     return (
       <Card withBorder>
         <Stack align="center" gap="md" py="xl">
@@ -40,28 +42,25 @@ export const TranspilationTabContent: React.FC<{
       </Card>
     );
   }
-  
-  if (result.status === 'completed' && result.metrics) {
-    return (
-      <Stack gap="md">
-        <Group justify="flex-end">
-          <Button 
-            variant="light" 
-            leftSection={viewMode === 'table' ? <IconChartLine size={16} /> : <IconTable size={16} />}
-            onClick={() => setViewMode(prev => prev === 'table' ? 'chart' : 'table')}
-          >
-            Switch to {viewMode === 'table' ? 'Chart' : 'Table'} View
-          </Button>
-        </Group>
-        
-        {viewMode === 'table' ? (
-          <TranspilationStatsTable result={result} originalCircuit={originalCircuit} />
-        ) : (
-          <TranspilationStatsChart result={result} originalCircuit={originalCircuit} />
-        )}
-      </Stack>
-    );
-  }
-  
-  return null;
+
+  // Completed state
+  return (
+    <Stack gap="md">
+      <Group justify="flex-end">
+        <Button 
+          variant="light" 
+          leftSection={viewMode === 'table' ? <IconChartLine size={16} /> : <IconTable size={16} />}
+          onClick={() => setViewMode(prev => prev === 'table' ? 'chart' : 'table')}
+        >
+          Switch to {viewMode === 'table' ? 'Chart' : 'Table'} View
+        </Button>
+      </Group>
+      
+      {viewMode === 'table' ? (
+        <TranspilationStatsTable result={result} originalCircuit={originalCircuit} />
+      ) : (
+        <TranspilationStatsChart result={result} originalCircuit={originalCircuit} />
+      )}
+    </Stack>
+  );
 };

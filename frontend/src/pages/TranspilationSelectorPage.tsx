@@ -1,33 +1,30 @@
 import { useState } from "react";
+import axios from "axios";
 import { TranspilationResult } from "../types";
 import { Alert, Badge, Button, Container, Paper, Tabs, Title } from "@mantine/core";
 import { TranspilationHeader } from "../components/TranspilationSelector/TranspilationHeader";
-import {TranspilationTabContent} from "../components/TranspilationSelector/TranspilationTabContent";
+import { TranspilationTabContent } from "../components/TranspilationSelector/TranspilationTabContent";
 import { useLocation, useNavigate } from "react-router-dom";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { AlgorithmSelector } from "../components/TranspilationSelector/AlgorithmSelector";
 
+type Status = 'pending' | 'running' | 'completed' | 'error';
+
+interface ResultWithStatus {
+  status: Status;
+  data?: TranspilationResult;
+  error?: string;
+}
 
 const TranspilationSelectorPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { topology, circuit } = location.state || {};
-  
-  const [results, setResults] = useState<Record<string, TranspilationResult>>({
-    default: {
-      algorithm: 'Default/Naive',
-      status: 'completed',
-      metrics: {
-        error_rate: 0.0234,
-        gates_inserted: 12,
-        depth_increase: 8,
-        execution_time: 45.3,
-        fidelity: 0.9766
-      },
-      circuit: circuit?.summary
-    }
+
+  const [results, setResults] = useState<Record<string, ResultWithStatus>>({
+    default: { status: 'completed', data: circuit?.transpilationResult }
   });
-  
+
   if (!topology || !circuit) {
     return (
       <Container size="xl" py="md">
@@ -38,119 +35,104 @@ const TranspilationSelectorPage: React.FC = () => {
       </Container>
     );
   }
-  
+
   const handleAlgorithmConfirm = async (algorithms: string[]) => {
-    const newResults = { ...results };
-    
+    const newResults: Record<string, ResultWithStatus> = { ...results };
     algorithms.forEach(algo => {
-      newResults[algo] = {
-        algorithm: algo.toUpperCase(),
-        status: 'pending'
-      };
+      newResults[algo] = { status: 'pending' };
     });
-    
     setResults(newResults);
-    
-    // Auto-run all selected algorithms
+
     for (const algo of algorithms) {
       await handleTranspile(algo);
     }
   };
-  
+
   const handleTranspile = async (algorithm: string) => {
     setResults(prev => ({
       ...prev,
-      [algorithm]: { ...prev[algorithm], status: 'running' }
+      [algorithm]: { status: 'running' }
     }));
-    
-    // TODO: Replace with actual API call
-    // const response = await fetch('/api/transpile', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ 
-    //     algorithm, 
-    //     circuit_id: circuit.circuit_id, 
-    //     topology_id: topology.id 
-    //   })
-    // });
-    // const data = await response.json();
-    
-    setTimeout(() => {
+
+    try {
+      const response = await axios.post<TranspilationResult>(
+        "http://localhost:8000/transpile/run",
+        {
+          algorithm,
+          circuit_id: circuit.circuit_id,
+          topology: topology
+        }
+      );
+
+      setResults(prev => ({
+        ...prev,
+        [algorithm]: { status: 'completed', data: response.data }
+      }));
+    } catch (err: any) {
       setResults(prev => ({
         ...prev,
         [algorithm]: {
-          ...prev[algorithm],
-          status: 'completed',
-          metrics: {
-            error_rate: Math.random() * 0.05,
-            gates_inserted: Math.floor(Math.random() * 20) + 5,
-            depth_increase: Math.floor(Math.random() * 15) + 3,
-            execution_time: Math.random() * 100 + 20,
-            fidelity: 0.95 + Math.random() * 0.04
-          },
-          circuit: {
-            ...circuit.summary,
-            n_gates: circuit.summary.n_gates + Math.floor(Math.random() * 20) + 5,
-            n_two_qubit_gates: circuit.summary.n_two_qubit_gates + Math.floor(Math.random() * 10),
-            depth: circuit.summary.depth + Math.floor(Math.random() * 15) + 3,
-            n_swap_gates: Math.floor(Math.random() * 8) + 2
-          }
+          status: 'error',
+          error: err?.response?.data?.detail || "Transpilation failed"
         }
       }));
-    }, 2000);
+    }
   };
-  
+
   const existingAlgorithms = Object.keys(results).filter(k => k !== 'default');
-  
+
   return (
     <Container size="xl" py="md">
       <Title order={1} mb="lg">Quantum Circuit Transpilation</Title>
-      
+
       <TranspilationHeader circuit={circuit} topology={topology} />
-      
+
       <AlgorithmSelector
-        onConfirm={handleAlgorithmConfirm} 
+        onConfirm={handleAlgorithmConfirm}
         existingAlgorithms={existingAlgorithms}
       />
-      
+
       <Paper p="md" withBorder>
         <Tabs defaultValue="default">
           <Tabs.List>
             <Tabs.Tab value="default">
               Default/Naive
-              <Badge size="xs" ml="xs" color="green">✓</Badge>
+              {results.default.status === 'completed' && <Badge size="xs" ml="xs" color="green">✓</Badge>}
+              {results.default.status === 'running' && <Badge size="xs" ml="xs" color="blue">⏳</Badge>}
+              {results.default.status === 'error' && <Badge size="xs" ml="xs" color="red">✗</Badge>}
             </Tabs.Tab>
-            {Object.keys(results).filter(k => k !== 'default').map(algo => (
+            {existingAlgorithms.map(algo => (
               <Tabs.Tab key={algo} value={algo}>
                 {algo.toUpperCase()}
-                {results[algo].status === 'completed' && (
-                  <Badge size="xs" ml="xs" color="green">✓</Badge>
-                )}
-                {results[algo].status === 'running' && (
-                  <Badge size="xs" ml="xs" color="blue">⏳</Badge>
-                )}
+                {results[algo].status === 'completed' && <Badge size="xs" ml="xs" color="green">✓</Badge>}
+                {results[algo].status === 'running' && <Badge size="xs" ml="xs" color="blue">⏳</Badge>}
+                {results[algo].status === 'error' && <Badge size="xs" ml="xs" color="red">✗</Badge>}
               </Tabs.Tab>
             ))}
           </Tabs.List>
-          
+
           <Tabs.Panel value="default" pt="md">
-            <TranspilationTabContent
-              result={results.default}
-              originalCircuit={circuit.summary}
-              isDefault={true}
-              onTranspile={() => {}}
-            />
-          </Tabs.Panel>
-          
-          {Object.keys(results).filter(k => k !== 'default').map(algo => (
-            <Tabs.Panel key={algo} value={algo} pt="md">
+            {results.default.data && (
               <TranspilationTabContent
-                result={results[algo]}
+                result={results.default.data}
                 originalCircuit={circuit.summary}
-                isDefault={false}
-                onTranspile={() => handleTranspile(algo)}
+                isDefault={true}
+                onTranspile={() => {}}
               />
-            </Tabs.Panel>
+            )}
+          </Tabs.Panel>
+
+          {existingAlgorithms.map(algo => (
+            results[algo].data ? (
+              <Tabs.Panel key={algo} value={algo} pt="md">
+                <TranspilationTabContent
+                  result={results[algo].data!} // non-null assertion, safe due to conditional
+                  originalCircuit={circuit.summary}
+                  isDefault={false}
+                  onTranspile={() => handleTranspile(algo)}
+                />
+              </Tabs.Panel>
+            ) : null
           ))}
         </Tabs>
       </Paper>

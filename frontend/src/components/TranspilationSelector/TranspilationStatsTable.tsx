@@ -5,41 +5,46 @@ export const TranspilationStatsTable: React.FC<{
   result: TranspilationResult;
   originalCircuit: any;
 }> = ({ result, originalCircuit }) => {
-  if (!result.metrics || !result.circuit) return null;
-  
+  if (!result.metrics || !result.summary) return null;
+
+  // Approximate SWAP gates if not provided
+  const nSwapTranspiled = result.summary.n_swap_gates ?? Math.round(
+    (result.summary.n_cx_gates - originalCircuit.n_cx_gates) / 3
+  );
+
   const comparisonData = [
     { 
       metric: 'Total Gates', 
       original: originalCircuit.n_gates, 
-      transpiled: result.circuit.n_gates,
-      change: result.circuit.n_gates - originalCircuit.n_gates
+      transpiled: result.summary.n_gates,
+      change: result.summary.n_gates - originalCircuit.n_gates
     },
     { 
       metric: 'Two-Qubit Gates', 
       original: originalCircuit.n_two_qubit_gates, 
-      transpiled: result.circuit.n_two_qubit_gates,
-      change: result.circuit.n_two_qubit_gates - originalCircuit.n_two_qubit_gates
+      transpiled: result.summary.n_two_qubit_gates,
+      change: result.summary.n_two_qubit_gates - originalCircuit.n_two_qubit_gates
     },
     { 
       metric: 'Circuit Depth', 
       original: originalCircuit.depth, 
-      transpiled: result.circuit.depth,
+      transpiled: result.summary.depth,
       change: result.metrics.depth_increase
     },
     { 
       metric: 'CX Gates', 
       original: originalCircuit.n_cx_gates, 
-      transpiled: result.circuit.n_cx_gates,
-      change: result.circuit.n_cx_gates - originalCircuit.n_cx_gates
+      transpiled: result.summary.n_cx_gates,
+      change: result.summary.n_cx_gates - originalCircuit.n_cx_gates
     },
     { 
       metric: 'SWAP Gates', 
       original: originalCircuit.n_swap_gates, 
-      transpiled: result.circuit.n_swap_gates,
-      change: result.circuit.n_swap_gates - originalCircuit.n_swap_gates
+      transpiled: nSwapTranspiled,
+      change: nSwapTranspiled - originalCircuit.n_swap_gates
     },
   ];
-  
+
   return (
     <Card withBorder p="lg">
       <Title order={4} mb="md">Circuit Comparison Table</Title>
@@ -77,8 +82,29 @@ export const TranspilationStatsTable: React.FC<{
       <Grid mt="lg">
         <Grid.Col span={4}>
           <Card padding="sm" withBorder bg="red.0">
-            <Text size="xs" c="dimmed" tt="uppercase" mb={4}>Error Rate</Text>
-            <Text size="xl" fw={700} c="red">{(result.metrics.error_rate * 100).toFixed(3)}%</Text>
+            <Text size="xs" c="dimmed" tt="uppercase" mb={4}>Gate Error</Text>
+            <Text size="xl" fw={700} c="red">{(result.metrics.gate_error * 100).toFixed(3)}%</Text>
+          </Card>
+        </Grid.Col>
+        <Grid.Col span={4}>
+          <Card padding="sm" withBorder bg="orange.0">
+            <Text size="xs" c="dimmed" tt="uppercase" mb={4}>Decoherence Risk</Text>
+            <Text size="xl" fw={700} c="orange">{(result.metrics.decoherence_risk * 100).toFixed(2)}%</Text>
+          </Card>
+        </Grid.Col>
+        <Grid.Col span={4}>
+          <Card padding="sm" withBorder bg="blue.0">
+            <Text size="xs" c="dimmed" tt="uppercase" mb={4}>Readout Error</Text>
+            <Text size="xl" fw={700} c="blue">{(result.metrics.readout_error * 100).toFixed(2)}%</Text>
+          </Card>
+        </Grid.Col>
+      </Grid>
+
+      <Grid mt="md">
+        <Grid.Col span={4}>
+          <Card padding="sm" withBorder bg="purple.0">
+            <Text size="xs" c="dimmed" tt="uppercase" mb={4}>Effective Error</Text>
+            <Text size="xl" fw={700} c="purple">{(result.metrics.effective_error * 100).toFixed(2)}%</Text>
           </Card>
         </Grid.Col>
         <Grid.Col span={4}>

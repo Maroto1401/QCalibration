@@ -2,11 +2,10 @@ from fastapi import APIRouter, HTTPException
 from typing import Dict
 from uuid import uuid4
 import time
-
-from backend.app.core.BaseModelClasses import TranspilationRequest, TranspilationResult
+from ..core.BaseModelClasses import TranspilationRequest, TranspilationResult
 
 from ..core.QuantumCircuit import QuantumCircuit, Operation
-from parser_handler import parsed_circuits
+from .parser_handler import parsed_circuits
 
 router = APIRouter(prefix="/transpile", tags=["transpilation"])
 
