@@ -103,7 +103,6 @@ def calculate_circuit_metrics(
             if qubit_cal.qubit in embedding.values():
                 t1 = qubit_cal.t1
                 t2 = qubit_cal.t2
-                print(t1, t2)
                 if t1 and t2:
                     rate = (1.0 / t1) + (1.0 / t2)
                     decoh_error = 1 - math.exp(-total_duration * rate)

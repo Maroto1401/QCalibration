@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { TranspilationResult } from "../types";
 import { Alert, Badge, Button, Container, Paper, Tabs, Title } from "@mantine/core";
@@ -22,33 +22,11 @@ const TranspilationSelectorPage: React.FC = () => {
   const { topology, circuit } = location.state || {};
 
   const [results, setResults] = useState<Record<string, ResultWithStatus>>({
-    default: { status: 'completed', data: circuit?.transpilationResult }
+    naive: { status: 'pending', data: circuit?.transpilationResult }
   });
 
-  if (!topology || !circuit) {
-    return (
-      <Container size="xl" py="md">
-        <Alert icon={<IconAlertCircle size={16} />} color="red" title="Missing Data">
-          No circuit or topology data provided. Please select a circuit and topology first.
-        </Alert>
-        <Button mt="md" onClick={() => navigate(-1)}>Go Back</Button>
-      </Container>
-    );
-  }
 
-  const handleAlgorithmConfirm = async (algorithms: string[]) => {
-    const newResults: Record<string, ResultWithStatus> = { ...results };
-    algorithms.forEach(algo => {
-      newResults[algo] = { status: 'pending' };
-    });
-    setResults(newResults);
-
-    for (const algo of algorithms) {
-      await handleTranspile(algo);
-    }
-  };
-
-  const handleTranspile = async (algorithm: string) => {
+  const handleTranspile = useCallback(async (algorithm: string) => {
     setResults(prev => ({
       ...prev,
       [algorithm]: { status: 'running' }
@@ -60,7 +38,7 @@ const TranspilationSelectorPage: React.FC = () => {
         {
           algorithm,
           circuit_id: circuit.circuit_id,
-          topology: topology
+          topology
         }
       );
 
@@ -77,9 +55,38 @@ const TranspilationSelectorPage: React.FC = () => {
         }
       }));
     }
-  };
+  }, [circuit, topology]);
 
-  const existingAlgorithms = Object.keys(results).filter(k => k !== 'default');
+  useEffect(() => {
+    if (results.naive.status === 'pending') {
+      handleTranspile('naive');
+    }
+  }, [results.naive.status, handleTranspile]);
+
+    if (!topology || !circuit) {
+      return (
+        <Container size="xl" py="md">
+          <Alert icon={<IconAlertCircle size={16} />} color="red" title="Missing Data">
+            No circuit or topology data provided. Please select a circuit and topology first.
+          </Alert>
+          <Button mt="md" onClick={() => navigate(-1)}>Go Back</Button>
+        </Container>
+      );
+    }
+
+    const handleAlgorithmConfirm = async (algorithms: string[]) => {
+      const newResults: Record<string, ResultWithStatus> = { ...results };
+      algorithms.forEach(algo => {
+        newResults[algo] = { status: 'pending' };
+      });
+      setResults(newResults);
+
+      for (const algo of algorithms) {
+        await handleTranspile(algo);
+      }
+    };
+
+  const existingAlgorithms = Object.keys(results).filter(k => k !== 'naive');
 
   return (
     <Container size="xl" py="md">
@@ -93,13 +100,13 @@ const TranspilationSelectorPage: React.FC = () => {
       />
 
       <Paper p="md" withBorder>
-        <Tabs defaultValue="default">
+        <Tabs defaultValue="naive">
           <Tabs.List>
-            <Tabs.Tab value="default">
-              Default/Naive
-              {results.default.status === 'completed' && <Badge size="xs" ml="xs" color="green">✓</Badge>}
-              {results.default.status === 'running' && <Badge size="xs" ml="xs" color="blue">⏳</Badge>}
-              {results.default.status === 'error' && <Badge size="xs" ml="xs" color="red">✗</Badge>}
+            <Tabs.Tab value="naive">
+              Naive
+              {results.naive.status === 'completed' && <Badge size="xs" ml="xs" color="green">✓</Badge>}
+              {results.naive.status === 'running' && <Badge size="xs" ml="xs" color="blue">⏳</Badge>}
+              {results.naive.status === 'error' && <Badge size="xs" ml="xs" color="red">✗</Badge>}
             </Tabs.Tab>
             {existingAlgorithms.map(algo => (
               <Tabs.Tab key={algo} value={algo}>
@@ -111,10 +118,10 @@ const TranspilationSelectorPage: React.FC = () => {
             ))}
           </Tabs.List>
 
-          <Tabs.Panel value="default" pt="md">
-            {results.default.data && (
+          <Tabs.Panel value="naive" pt="md">
+            {results.naive.data && (
               <TranspilationTabContent
-                result={results.default.data}
+                result={results.naive.data}
                 originalCircuit={circuit.summary}
                 isDefault={true}
                 onTranspile={() => {}}
