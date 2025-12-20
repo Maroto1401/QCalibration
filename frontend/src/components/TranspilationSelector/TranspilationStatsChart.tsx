@@ -143,7 +143,7 @@ export const TranspilationStatsChart: React.FC<{
           </Stack>
           <Stack gap={4} align="center">
             <Text size="xs" c="dimmed" tt="uppercase">Execution Time</Text>
-            <Text size="xl" fw={700}>{result.metrics.execution_time.toFixed(2)} ms</Text>
+            <Text size="xl" fw={700}>{(result.metrics.execution_time * 1e6).toFixed(2)} μs</Text>
           </Stack>
         </Group>
       </Card>

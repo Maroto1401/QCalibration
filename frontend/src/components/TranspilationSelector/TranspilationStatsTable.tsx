@@ -102,9 +102,9 @@ export const TranspilationStatsTable: React.FC<{
 
       <Grid mt="md">
         <Grid.Col span={4}>
-          <Card padding="sm" withBorder bg="purple.0">
+          <Card padding="sm" withBorder bg="violet.0">
             <Text size="xs" c="dimmed" tt="uppercase" mb={4}>Effective Error</Text>
-            <Text size="xl" fw={700} c="purple">{(result.metrics.effective_error * 100).toFixed(2)}%</Text>
+            <Text size="xl" fw={700} c="violet">{(result.metrics.effective_error * 100).toFixed(2)}%</Text>
           </Card>
         </Grid.Col>
         <Grid.Col span={4}>
@@ -116,7 +116,7 @@ export const TranspilationStatsTable: React.FC<{
         <Grid.Col span={4}>
           <Card padding="sm" withBorder bg="blue.0">
             <Text size="xs" c="dimmed" tt="uppercase" mb={4}>Execution Time</Text>
-            <Text size="xl" fw={700} c="blue">{result.metrics.execution_time.toFixed(2)}ms</Text>
+            <Text size="xl" fw={700} c="blue">{(result.metrics.execution_time * 1e6).toFixed(2)} μs</Text>
           </Card>
         </Grid.Col>
       </Grid>

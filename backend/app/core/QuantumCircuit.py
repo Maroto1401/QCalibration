@@ -123,6 +123,48 @@ class QuantumCircuit:
         self.operations.append(Operation("barrier", qubits))
 
     # ------------------------------------------
+    # Other operations
+    # ------------------------------------------
+
+    def calculate_depth(self) -> int:
+        """
+        Compute the logical depth of the circuit assuming:
+        - Each operation has unit duration
+        - Operations on disjoint qubits can run in parallel
+        - Barriers and control-flow ops serialize execution
+        """
+        if not self.operations:
+            return 0
+
+        # Track the latest layer used by each qubit
+        qubit_depths = [0] * self.num_qubits
+        current_global_depth = 0
+        print(f"Calculating depth for QuantumCircuit with {len(self.operations)} operations.")
+        for op in self.operations:
+            # Control-flow or barrier → serialize
+            if op.name in {"barrier", "for_loop", "while_loop", "if_else"}:
+                current_global_depth = max(qubit_depths) + 1
+                qubit_depths = [current_global_depth] * self.num_qubits
+                continue
+
+            # No qubits involved (should be rare, but safe)
+            if not op.qubits:
+                current_global_depth += 1
+                continue
+
+            # Find earliest layer this op can be scheduled
+            op_start = max(qubit_depths[q] for q in op.qubits)
+            op_end = op_start + 1
+
+            # Update qubit depths
+            for q in op.qubits:
+                qubit_depths[q] = op_end
+
+            current_global_depth = max(current_global_depth, op_end)
+        print(f"Calculated circuit depth: {current_global_depth}")
+        return current_global_depth
+
+    # ------------------------------------------
     # Control flow insertion
     # ------------------------------------------
     def add_for_loop(self, iterations: int, body: List[Operation]):

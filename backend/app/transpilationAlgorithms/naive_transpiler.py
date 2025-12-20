@@ -86,6 +86,8 @@ def naive_transpiler(
             raise NotImplementedError(
                 f"Multi-qubit gate '{op.name}' with {len(op.qubits)} qubits is not supported."
             )
+    transpiled_qc.depth = transpiled_qc.calculate_depth()
+
 
     metrics = calculate_circuit_metrics(
         original_qc=qc,

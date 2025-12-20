@@ -114,6 +114,9 @@ def calculate_circuit_metrics(
     )
 
     measured_logical = get_measured_logical_qubits(original_qc)
+    # Fallback: if no explicit measurements, assume all logical qubits are measured
+    if not measured_logical:
+        measured_logical = list(range(original_qc.num_qubits))
     measured_physical = [embedding[q] for q in measured_logical if q in embedding]
 
     readout_errors = []
@@ -136,7 +139,7 @@ def calculate_circuit_metrics(
     effective_error = combine_errors(total_gate_error, decoherence_risk, readout_error)
     fidelity = max(1.0 - effective_error, 0.0)
 
-
+    print(n_cx_gates)
     return {
         "execution_time": total_duration,
         "gate_error": total_gate_error,

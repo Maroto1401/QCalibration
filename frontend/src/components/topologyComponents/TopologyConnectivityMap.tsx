@@ -16,15 +16,6 @@ type EdgeStatus = "all" | "available" | "obsolete";
 function isObsoleteError(error: number | null | undefined): boolean {
   return error === 1;
 }
-function isAvailableEdge(error: number | null): boolean {
-  return error !== null && error >= 0 && error < 1;
-}
-
-function isObsoleteEdge(error: number | null, obsolete: boolean): boolean {
-  return obsolete && error === null;
-}
-
-
 // Filter out invalid error rates (1.0 means gate not operational)
 function isValidError(error: number | null | undefined): boolean {
   return error !== null && error !== undefined && error < 1.0 && error >= 0;
@@ -178,9 +169,12 @@ export function TopologyConnectivityMap({ topology }: Props) {
             const validReadout = isValidError(readoutError);
             return `
               <div style="padding: 4px;">
-                <b style="font-size: 14px;">Qubit ${q.qubit}</b><br/>
-                <span style="color: #666;">T1:</span> <b>${q.t1?.toFixed(2) ?? "–"} µs</b><br/>
-                <span style="color: #666;">T2:</span> <b>${q.t2?.toFixed(2) ?? "–"} µs</b><br/>
+                <b style={{ fontSize: 14 }}>Qubit ${q.qubit}</b><br/>
+                <span style={{ color: "#666" }}>T1:</span>${" "}
+                <b>${q.t1 != null ? (q.t1 * 1e6).toFixed(2) : "–"} µs</b><br/>
+                <span style={{ color: "#666" }}>T2:</span>${" "}
+                <b>${q.t2 != null ? (q.t2 * 1e6).toFixed(2) : "–"} µs</b><br/>
+
                 <span style="color: #666;">Frequency:</span> <b>${q.frequency?.toFixed(3) ?? "–"} GHz</b><br/>
                 <span style="color: #666;">Readout error:</span> <b>${validReadout ? ((readoutError ?? 0) * 100).toFixed(3) + '%' : 'N/A'}</b>
               </div>
