@@ -9,6 +9,7 @@ export interface CircuitSummary {
   depth: number;
   gate_counts: Record<string, number>;
   operations: Operation[];
+  circuitConnectivity: Record<string, number>;
 }
 export interface Operation {
   type: string;

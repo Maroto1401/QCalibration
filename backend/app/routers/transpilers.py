@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from typing import Dict
 from uuid import uuid4
 import time
+
 from ..core.BaseModelClasses import TranspilationRequest, TranspilationResult
 
 from ..core.QuantumCircuit import QuantumCircuit, Operation
@@ -76,7 +77,7 @@ async def run_transpilation(request: TranspilationRequest):
     
     # Import algorithm-specific transpilers
     from ..transpilationAlgorithms.naive_transpiler import naive_transpiler
-    # from ..transpilationAlgorithms.sabre_transpiler import sabre_transpiler
+    from ..transpilationAlgorithms.sabre_transpiler import sabre_transpiler
     # from ..transpilationAlgorithms.stochastic_transpiler import stochastic_transpiler
     # from ..transpilationAlgorithms.lookahead_transpiler import lookahead_transpiler
     # from ..transpilationAlgorithms.basic_transpiler import basic_transpiler
@@ -85,12 +86,12 @@ async def run_transpilation(request: TranspilationRequest):
     
     # Route to the appropriate algorithm
     algorithm = request.algorithm.lower()
-    
     try:
         if algorithm == "naive":
             transpiled_qc, embedding, metrics = naive_transpiler(qc, request.topology)
         elif algorithm == "sabre":
-            raise HTTPException(status_code=501, detail="SABRE algorithm not yet implemented")
+            transpiled_qc, embedding, metrics = sabre_transpiler(qc, request.topology)
+            #raise HTTPException(status_code=501, detail="SABRE algorithm not yet implemented")
             # transpiled_qc, embedding, metrics = sabre_transpiler(qc, request.topology)
         elif algorithm == "stochastic":
             raise HTTPException(status_code=501, detail="Stochastic algorithm not yet implemented")

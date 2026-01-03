@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Any, Dict, Optional
+from typing import List, Any, Dict, Optional, Tuple
 from qiskit import QuantumCircuit as QiskitQuantumCircuit
 from qiskit.qasm3 import loads as qasm3_load
 
@@ -126,6 +126,24 @@ class QuantumCircuit:
     # Other operations
     # ------------------------------------------
 
+    def get_circuit_connectivity(self) -> Dict[Tuple[int, int], int]:
+        """
+        Analyze the circuit to determine logical connectivity between qubits
+        based on two-qubit gates.
+        """
+        connectivity: Dict[Tuple[int, int], int] = {}
+
+        for op in self.operations:
+            if op.name == "swap":
+                continue
+            if len(op.qubits) == 2:
+                q1, q2 = sorted(op.qubits)
+                key = (q1, q2)
+                connectivity[key] = connectivity.get(key, 0) + 1
+
+        return connectivity
+
+    
     def calculate_depth(self) -> int:
         """
         Compute the logical depth of the circuit assuming:

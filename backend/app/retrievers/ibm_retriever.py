@@ -16,8 +16,9 @@ def fetch_ibm_topologies() -> List[Dict]:
     )
     topologies = []
     backends = service.backends(simulator=False)
-
+    
     for backend in backends:
+
         config = backend.configuration()
         status = backend.status()
         properties = backend.properties()
@@ -28,6 +29,7 @@ def fetch_ibm_topologies() -> List[Dict]:
 
         # Safe gates with duration in seconds
         safe_gates = []
+
         for g in getattr(properties, "gates", []):
             duration_dt = next(
                 (p.value for p in getattr(g, "parameters", []) if getattr(p, "name", "") in ["gate_length", "duration"]),

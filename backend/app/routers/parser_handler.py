@@ -94,7 +94,11 @@ async def get_circuit(circuit_id: str):
                 n_swap_gates += 1
             if op.name.lower() == "cx":
                 n_cx_gates += 1
-
+    circuitConnectivity = qc.get_circuit_connectivity()
+    parsed_circuit_connectivity = {
+    f"{q1}-{q2}": count
+    for (q1, q2), count in circuitConnectivity.items()
+}
     # --- Prepare summary ---
     summary = {
         "n_qubits": n_qubits,
@@ -107,7 +111,8 @@ async def get_circuit(circuit_id: str):
         "n_swap_gates": n_swap_gates,
         "n_cx_gates": n_cx_gates, 
         "gate_counts": {op.name: sum(1 for o in qc.operations if isinstance(o, Operation) and o.name == op.name) for op in qc.operations if isinstance(op, Operation)},
-        "operations": qc.operations_list()
+        "operations": qc.operations_list(),
+        "circuitConnectivity": parsed_circuit_connectivity
     }
     return {"circuit_id": circuit_id, "summary": summary}
 

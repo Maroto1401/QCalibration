@@ -1,4 +1,4 @@
-import { Container, Title, Text, Loader, Alert, Grid, Group, Divider, Stack, Button} from "@mantine/core";
+import { Container, Title, Text, Loader, Alert, Grid, Group, Divider, Stack} from "@mantine/core";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +12,7 @@ import TwoQubitGatesBreakdownDonut from "../components/analysisComponents/TwoQub
 import { IconCircuitResistor } from "@tabler/icons-react";
 import { QuantumCircuitVisualizer } from "../components/analysisComponents/QuantumCircuitVisualizer";
 import ToTopologyButton from "../components/analysisComponents/ToTopologyButton";
+import CircuitConnectivityHeatmap from "../components/analysisComponents/circuitConnectivity";
 
 
 
@@ -132,6 +133,11 @@ return (
         <TwoQubitGatesBreakdownDonut twoQubitGates={summary.two_qubit_gates}/>
       </Grid.Col>  
     </Grid>
+    <Grid gutter="md">
+  <Grid.Col span={{ base: 12, md: 12, lg: 12 }}>
+    <CircuitConnectivityHeatmap circuit={summary} height={400} />
+  </Grid.Col>
+</Grid>
     <Grid gutter="md">
       <Grid.Col span={{ base: 12, md: 12, lg: 12}}>
         <QuantumCircuitVisualizer circuit={summary}  />
