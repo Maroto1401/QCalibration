@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { TranspilationResult } from "../types";
-import { Alert, Badge, Button, Container, Paper, Tabs, Title } from "@mantine/core";
+import { Alert, Badge, Button, Container, Paper, Tabs, Title, Group } from "@mantine/core";
 import { TranspilationHeader } from "../components/TranspilationSelector/TranspilationHeader";
 import { TranspilationTabContent } from "../components/TranspilationSelector/TranspilationTabContent";
 import { useLocation, useNavigate } from "react-router-dom";
-import { IconAlertCircle } from "@tabler/icons-react";
+import { IconAlertCircle, IconMap } from "@tabler/icons-react";
 import { AlgorithmSelector } from "../components/TranspilationSelector/AlgorithmSelector";
+import { EmbeddingVisualization } from "../components/TranspilationSelector/EmbeddingVisualization";
+
 
 type Status = 'pending' | 'running' | 'completed' | 'error';
 
@@ -25,6 +27,11 @@ const TranspilationSelectorPage: React.FC = () => {
     naive: { status: 'pending', data: circuit?.transpilationResult }
   });
 
+  const [embeddingView, setEmbeddingView] = useState<{
+    opened: boolean;
+    embedding: TranspilationResult['embedding'] | null;
+    algorithmName: string;
+  }>({ opened: false, embedding: null, algorithmName: '' });
 
   const handleTranspile = useCallback(async (algorithm: string) => {
     setResults(prev => ({
@@ -63,28 +70,39 @@ const TranspilationSelectorPage: React.FC = () => {
     }
   }, [results.naive.status, handleTranspile]);
 
-    if (!topology || !circuit) {
-      return (
-        <Container size="xl" py="md">
-          <Alert icon={<IconAlertCircle size={16} />} color="red" title="Missing Data">
-            No circuit or topology data provided. Please select a circuit and topology first.
-          </Alert>
-          <Button mt="md" onClick={() => navigate(-1)}>Go Back</Button>
-        </Container>
-      );
+  if (!topology || !circuit) {
+    return (
+      <Container size="xl" py="md">
+        <Alert icon={<IconAlertCircle size={16} />} color="red" title="Missing Data">
+          No circuit or topology data provided. Please select a circuit and topology first.
+        </Alert>
+        <Button mt="md" onClick={() => navigate(-1)}>Go Back</Button>
+      </Container>
+    );
+  }
+
+  const handleAlgorithmConfirm = async (algorithms: string[]) => {
+    const newResults: Record<string, ResultWithStatus> = { ...results };
+    algorithms.forEach(algo => {
+      newResults[algo] = { status: 'pending' };
+    });
+    setResults(newResults);
+
+    for (const algo of algorithms) {
+      await handleTranspile(algo);
     }
+  };
 
-    const handleAlgorithmConfirm = async (algorithms: string[]) => {
-      const newResults: Record<string, ResultWithStatus> = { ...results };
-      algorithms.forEach(algo => {
-        newResults[algo] = { status: 'pending' };
+  const handleViewEmbedding = (algorithm: string) => {
+    const result = results[algorithm];
+    if (result.data?.embedding) {
+      setEmbeddingView({
+        opened: true,
+        embedding: result.data.embedding,
+        algorithmName: algorithm,
       });
-      setResults(newResults);
-
-      for (const algo of algorithms) {
-        await handleTranspile(algo);
-      }
-    };
+    }
+  };
 
   const existingAlgorithms = Object.keys(results).filter(k => k !== 'naive');
 
@@ -120,12 +138,25 @@ const TranspilationSelectorPage: React.FC = () => {
 
           <Tabs.Panel value="naive" pt="md">
             {results.naive.data && (
-              <TranspilationTabContent
-                result={results.naive.data}
-                originalCircuit={circuit.summary}
-                isDefault={true}
-                onTranspile={() => {}}
-              />
+              <>
+                <TranspilationTabContent
+                  result={results.naive.data}
+                  originalCircuit={circuit.summary}
+                  isDefault={true}
+                  onTranspile={() => {}}
+                />
+                {results.naive.data.embedding && (
+                  <Group mt="md">
+                    <Button
+                      leftSection={<IconMap size={18} />}
+                      variant="light"
+                      onClick={() => handleViewEmbedding('naive')}
+                    >
+                      View Embedding on Topology
+                    </Button>
+                  </Group>
+                )}
+              </>
             )}
           </Tabs.Panel>
 
@@ -133,16 +164,35 @@ const TranspilationSelectorPage: React.FC = () => {
             results[algo].data ? (
               <Tabs.Panel key={algo} value={algo} pt="md">
                 <TranspilationTabContent
-                  result={results[algo].data!} // non-null assertion, safe due to conditional
+                  result={results[algo].data!}
                   originalCircuit={circuit.summary}
                   isDefault={false}
                   onTranspile={() => handleTranspile(algo)}
                 />
+                {results[algo].data!.embedding && (
+                  <Group mt="md">
+                    <Button
+                      leftSection={<IconMap size={18} />}
+                      variant="light"
+                      onClick={() => handleViewEmbedding(algo)}
+                    >
+                      View Embedding on Topology
+                    </Button>
+                  </Group>
+                )}
               </Tabs.Panel>
             ) : null
           ))}
         </Tabs>
       </Paper>
+
+      <EmbeddingVisualization
+        topology={topology}
+        embedding={embeddingView.embedding}
+        opened={embeddingView.opened}
+        onClose={() => setEmbeddingView({ opened: false, embedding: null, algorithmName: '' })}
+        algorithmName={embeddingView.algorithmName}
+      />
     </Container>
   );
 };
