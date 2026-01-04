@@ -63,7 +63,7 @@ export function QuantumCircuitVisualizer({ circuit, maxQubits=40 }: QuantumCircu
   if (circuit.n_qubits > maxQubits) {
     return (
       <Paper p="md" withBorder>
-        <Text color="red">
+        <Text c="red">
           Circuit has {circuit.n_qubits} qubits, which is too large to visualize. 
           Please reduce the number of qubits under {maxQubits} or use a specialized viewer.
         </Text>
@@ -93,67 +93,65 @@ export function QuantumCircuitVisualizer({ circuit, maxQubits=40 }: QuantumCircu
 
   return (
     <Paper withBorder p="md">
-  <Box style={{ display: "flex" }}>
-    {/* Left fixed labels */}
-    <Box style={{ flexShrink: 0, width: MARGIN, position: "relative", zIndex: 2, background: "white" }}>
-      <svg width={MARGIN} height={height}>
-        {Array.from({ length: numQubits }).map((_, i) => (
-          <g key={`label-${i}`}>
-            {/* Qubit line fragment to align with gates */}
-            <line
-              x1={MARGIN}
-              y1={MARGIN + i * QUBIT_SPACING}
-              x2={MARGIN}
-              y2={MARGIN + i * QUBIT_SPACING}
-              stroke="#000"
-              strokeWidth={2}
-            />
-            {/* Qubit label */}
-            <Text
-              component="text"
-              x={MARGIN - 30}
-              y={MARGIN + i * QUBIT_SPACING + 5}
-              size="sm"
-              fill="#000"
-            >
-              q{i}
-            </Text>
-          </g>
-        ))}
-      </svg>
-    </Box>
+      <Box style={{ display: "flex" }}>
+        {/* Left fixed labels */}
+        <Box style={{ flexShrink: 0, width: MARGIN, position: "relative", zIndex: 2, background: "white" }}>
+          <svg width={MARGIN} height={height}>
+            {Array.from({ length: numQubits }).map((_, i) => (
+              <g key={`label-${i}`}>
+                {/* Qubit line fragment to align with gates */}
+                <line
+                  x1={MARGIN}
+                  y1={MARGIN + i * QUBIT_SPACING}
+                  x2={MARGIN}
+                  y2={MARGIN + i * QUBIT_SPACING}
+                  stroke="#000"
+                  strokeWidth={2}
+                />
+                {/* Qubit label */}
+                <Text
+                  component="text"
+                  x={MARGIN - 30}
+                  y={MARGIN + i * QUBIT_SPACING + 5}
+                  size="sm"
+                  fill="#000"
+                >
+                  q{i}
+                </Text>
+              </g>
+            ))}
+          </svg>
+        </Box>
 
-    {/* Scrollable gates */}
-    <ScrollArea style={{ width: "100%", overflowX: "auto" }}>
-      <Box component="svg" width={width} height={height}>
-        {/* Qubit lines */}
-        {Array.from({ length: numQubits }).map((_, i) => (
-          <line
-            key={`line-${i}`}
-            x1={MARGIN}
-            y1={MARGIN + i * QUBIT_SPACING}
-            x2={width - MARGIN}
-            y2={MARGIN + i * QUBIT_SPACING}
-            stroke="#000"
-            strokeWidth={2}
-          />
-        ))}
+        {/* Scrollable gates */}
+        <ScrollArea style={{ width: "100%", overflowX: "auto" }}>
+          <Box component="svg" width={width} height={height}>
+            {/* Qubit lines - rendered first so gates appear on top */}
+            {Array.from({ length: numQubits }).map((_, i) => (
+              <line
+                key={`line-${i}`}
+                x1={MARGIN}
+                y1={MARGIN + i * QUBIT_SPACING}
+                x2={width - MARGIN}
+                y2={MARGIN + i * QUBIT_SPACING}
+                stroke="#000"
+                strokeWidth={2}
+              />
+            ))}
 
-        {/* Gates */}
-        {layout.gates.map((gate, idx) => (
-          <Gate
-            key={idx}
-            operation={gate.operation}
-            x={MARGIN + gate.column * GATE_SPACING}
-            y={MARGIN}
-            qubitSpacing={QUBIT_SPACING}
-          />
-        ))}
+            {/* Gates - rendered after lines so they appear on top */}
+            {layout.gates.map((gate, idx) => (
+              <Gate
+                key={idx}
+                operation={gate.operation}
+                x={MARGIN + gate.column * GATE_SPACING}
+                y={MARGIN}
+                qubitSpacing={QUBIT_SPACING}
+              />
+            ))}
+          </Box>
+        </ScrollArea>
       </Box>
-    </ScrollArea>
-  </Box>
-</Paper>
-
+    </Paper>
   );
 }
-
