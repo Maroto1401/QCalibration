@@ -54,9 +54,6 @@ def naive_transpiler(
     embedding = {i: i for i in range(qc.num_qubits)}
     print(f"[DEBUG] Initial embedding: {embedding}")
 
-    # Track ALL physical qubits used (including ancillas)
-    physical_qubits_used = set(embedding.values())  # Start with initial mapping
-    
     # UNDIRECTED coupling graph (adjacency list)
     coupling_adjacency = _build_undirected_coupling(topology.coupling_map)
     
@@ -89,24 +86,25 @@ def naive_transpiler(
     physical_pos = embedding.copy()  # logical -> physical
     
     # Physical → logical mapping
+    # Initialize with None for physical qubits that have no logical qubit
     logical_at_physical = {}
     for logical, physical in embedding.items():
         logical_at_physical[physical] = logical
     
     # Helper function to get logical qubit at a physical location
+    # Returns None if physical qubit is empty
     def get_logical_at_physical(physical):
         return logical_at_physical.get(physical)
 
     # Helper function to update mappings after swap
     def apply_swap(logical1, logical2, physical1, physical2):
+        # Update logical -> physical mapping
         physical_pos[logical1] = physical2
         physical_pos[logical2] = physical1
+        
+        # Update physical -> logical mapping
         logical_at_physical[physical1] = logical2
         logical_at_physical[physical2] = logical1
-        
-        # Track both physical qubits as used
-        physical_qubits_used.add(physical1)
-        physical_qubits_used.add(physical2)
 
     for idx, op in enumerate(qc.operations):
         print(f"\n[DEBUG] Processing op {idx}: {op}")
@@ -124,21 +122,12 @@ def naive_transpiler(
             total_gate_error += error
             total_duration += duration
             print(f"[DEBUG] 1Q gate → error={error}, duration={duration}")
-            
-            # Track the physical qubit used
-            logical_q = op.qubits[0]
-            physical_q = physical_pos[logical_q]
-            physical_qubits_used.add(physical_q)
 
         # TWO-QUBIT
         elif len(op.qubits) == 2:
             q0, q1 = op.qubits
             p0, p1 = physical_pos[q0], physical_pos[q1]
             print(f"[DEBUG] 2Q gate {op.name} logical({q0},{q1}) physical({p0},{p1})")
-            
-            # Track both physical qubits as used
-            physical_qubits_used.add(p0)
-            physical_qubits_used.add(p1)
 
             if p1 in coupling_adjacency.get(p0, set()):
                 print("[DEBUG] Qubits already connected")
@@ -164,10 +153,6 @@ def naive_transpiler(
                 
                 print(f"[DEBUG] Path found: {path}")
                 
-                # Track ALL physical qubits in the path as used
-                for physical_q in path:
-                    physical_qubits_used.add(physical_q)
-                
                 # Save the state before routing
                 saved_physical_pos = physical_pos.copy()
                 saved_logical_at_physical = logical_at_physical.copy()
@@ -180,24 +165,24 @@ def naive_transpiler(
                 for i in range(len(path) - 1):
                     next_physical = path[i + 1]
                     
-                    # Track both qubits as used
-                    physical_qubits_used.add(current_physical)
-                    physical_qubits_used.add(next_physical)
-                    
                     # Check what logical qubit is at the next physical location
                     neighbor_logical = get_logical_at_physical(next_physical)
                     
                     # If the next physical qubit is empty, we just move there
                     if neighbor_logical is None:
+                        # Move logical qubit to empty physical qubit
                         print(f"[DEBUG] MOVE logical({moving_logical}) from physical({current_physical}) to empty physical({next_physical})")
                         
-                        # Update mappings
+                        # Update mappings: moving_logical goes to next_physical
                         old_physical = current_physical
                         physical_pos[moving_logical] = next_physical
                         logical_at_physical[next_physical] = moving_logical
+                        # Remove from old location
                         if old_physical in logical_at_physical:
                             del logical_at_physical[old_physical]
                         
+                        # No SWAP gate needed for moving to empty qubit
+                        # Just update current position
                         current_physical = next_physical
                         continue
                     
@@ -217,9 +202,11 @@ def naive_transpiler(
                     
                     print(f"[DEBUG] SWAP logical({moving_logical},{neighbor_logical}) physical({current_physical},{next_physical})")
                     
+                    # Now moving_logical is at next_physical
                     current_physical = next_physical
 
                 # Now q0 and q1 should be adjacent
+                # Verify they are connected
                 p0_final = physical_pos[q0]
                 p1_final = physical_pos[q1]
                 
@@ -237,15 +224,12 @@ def naive_transpiler(
                 total_duration += duration
 
                 # Reverse pass: move q0 back to original position
+                # We need to apply SWAPs in reverse order
                 moving_logical = q0
                 current_physical = p0_final
                 
                 for i in range(len(path) - 1, 0, -1):
                     prev_physical = path[i - 1]
-                    
-                    # Track both qubits as used
-                    physical_qubits_used.add(current_physical)
-                    physical_qubits_used.add(prev_physical)
                     
                     # Check what logical qubit is at the previous physical location
                     neighbor_logical = get_logical_at_physical(prev_physical)
@@ -274,16 +258,19 @@ def naive_transpiler(
                     total_gate_error += swap_error
                     total_duration += 3 * cx_duration
 
+                    # Apply the swap
                     apply_swap(moving_logical, neighbor_logical, current_physical, prev_physical)
                     
                     print(f"[DEBUG] Undo SWAP logical({moving_logical},{neighbor_logical}) physical({current_physical},{prev_physical})")
                     
                     current_physical = prev_physical
 
+                # Verify we restored correctly
                 if physical_pos != saved_physical_pos:
                     print(f"[WARNING] Mapping mismatch after undo!")
                     print(f"Expected: {saved_physical_pos}")
                     print(f"Got: {physical_pos}")
+                    # Force restore to be safe
                     physical_pos = saved_physical_pos.copy()
                     logical_at_physical = saved_logical_at_physical.copy()
 
@@ -303,15 +290,7 @@ def naive_transpiler(
         embedding=embedding,
         topology=topology,
     )
-    
-    # Add physical qubits used to metrics
-    metrics['physical_qubits_used'] = len(physical_qubits_used)
-    metrics['physical_qubits_list'] = sorted(list(physical_qubits_used))
-    metrics['ancilla_qubits'] = len(physical_qubits_used) - len(set(embedding.values()))
-    metrics['ancilla_qubits_list'] = sorted(list(physical_qubits_used - set(embedding.values())))
 
-    print(f"[DEBUG] Transpilation finished")
-    print(f"[DEBUG] Physical qubits used: {len(physical_qubits_used)}")
-    print(f"[DEBUG] Ancilla qubits used: {metrics['ancilla_qubits']}")
+    print("[DEBUG] Transpilation finished")
 
     return transpiled_qc, embedding, metrics
