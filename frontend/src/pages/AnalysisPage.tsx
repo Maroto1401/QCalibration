@@ -134,9 +134,9 @@ return (
       </Grid.Col>  
     </Grid>
     <Grid gutter="md">
-  <Grid.Col span={{ base: 12, md: 12, lg: 12 }}>
+  {/* <Grid.Col span={{ base: 12, md: 12, lg: 12 }}>
     <CircuitConnectivityHeatmap circuit={summary} height={400} />
-  </Grid.Col>
+</Grid.Col> */}
 </Grid>
     <Grid gutter="md">
       <Grid.Col span={{ base: 12, md: 12, lg: 12}}>

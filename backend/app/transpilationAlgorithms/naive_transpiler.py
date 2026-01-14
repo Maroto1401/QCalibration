@@ -48,11 +48,10 @@ def naive_transpiler(
     topology
 ) -> Tuple[QuantumCircuit, Dict[int, int], Dict[str, float]]:
 
-    print("[DEBUG] Starting naive transpiler")
+    print("[NAIVE] Starting naive transpiler")
 
     # Identity embedding
     embedding = {i: i for i in range(qc.num_qubits)}
-    print(f"[DEBUG] Initial embedding: {embedding}")
 
     # UNDIRECTED coupling graph (adjacency list)
     coupling_adjacency = _build_undirected_coupling(topology.coupling_map)
@@ -64,7 +63,6 @@ def naive_transpiler(
         all_physical_qubits.add(v)
     
     max_physical_qubit = max(all_physical_qubits) if all_physical_qubits else -1
-    print(f"[DEBUG] Topology: {len(all_physical_qubits)} qubits, max qubit: {max_physical_qubit}")
     
     # Validate topology can support circuit at least for initial embedding
     if qc.num_qubits - 1 > max_physical_qubit:
@@ -107,7 +105,6 @@ def naive_transpiler(
         logical_at_physical[physical2] = logical1
 
     for idx, op in enumerate(qc.operations):
-        print(f"\n[DEBUG] Processing op {idx}: {op}")
 
         if not isinstance(op, Operation):
             transpiled_qc.operations.append(op)
@@ -121,16 +118,13 @@ def naive_transpiler(
             )
             total_gate_error += error
             total_duration += duration
-            print(f"[DEBUG] 1Q gate → error={error}, duration={duration}")
 
         # TWO-QUBIT
         elif len(op.qubits) == 2:
             q0, q1 = op.qubits
             p0, p1 = physical_pos[q0], physical_pos[q1]
-            print(f"[DEBUG] 2Q gate {op.name} logical({q0},{q1}) physical({p0},{p1})")
 
             if p1 in coupling_adjacency.get(p0, set()):
-                print("[DEBUG] Qubits already connected")
                 transpiled_qc.operations.append(op)
                 error, duration = track_two_qubit_gate(
                     op, physical_pos, gate_error_map, gate_duration_map
@@ -138,7 +132,6 @@ def naive_transpiler(
                 total_gate_error += error
                 total_duration += duration
             else:
-                print(f"[DEBUG] Routing required (move-there-and-back) from physical {p0} to {p1}")
 
                 path = _shortest_path(coupling_adjacency, p0, p1)
                 
@@ -148,10 +141,8 @@ def naive_transpiler(
                         f"(logical qubits {q0} and {q1}). "
                         f"The topology does not support this circuit with identity embedding."
                     )
-                    print(f"[ERROR] {error_msg}")
                     raise RuntimeError(error_msg)
                 
-                print(f"[DEBUG] Path found: {path}")
                 
                 # Save the state before routing
                 saved_physical_pos = physical_pos.copy()
@@ -170,8 +161,6 @@ def naive_transpiler(
                     
                     # If the next physical qubit is empty, we just move there
                     if neighbor_logical is None:
-                        # Move logical qubit to empty physical qubit
-                        print(f"[DEBUG] MOVE logical({moving_logical}) from physical({current_physical}) to empty physical({next_physical})")
                         
                         # Update mappings: moving_logical goes to next_physical
                         old_physical = current_physical
@@ -199,9 +188,7 @@ def naive_transpiler(
 
                     # Apply the swap in our mappings
                     apply_swap(moving_logical, neighbor_logical, current_physical, next_physical)
-                    
-                    print(f"[DEBUG] SWAP logical({moving_logical},{neighbor_logical}) physical({current_physical},{next_physical})")
-                    
+                                        
                     # Now moving_logical is at next_physical
                     current_physical = next_physical
 
@@ -211,11 +198,10 @@ def naive_transpiler(
                 p1_final = physical_pos[q1]
                 
                 if p1_final not in coupling_adjacency.get(p0_final, set()):
-                    print(f"[ERROR] After routing, qubits {p0_final} and {p1_final} are not connected!")
                     raise RuntimeError("Routing failed to make qubits adjacent")
                 
                 # Perform the 2Q gate
-                print("[DEBUG] Applying routed 2Q gate")
+
                 transpiled_qc.operations.append(op)
                 error, duration = track_two_qubit_gate(
                     op, physical_pos, gate_error_map, gate_duration_map
@@ -236,7 +222,6 @@ def naive_transpiler(
                     
                     # If prev_physical is empty, just move there
                     if neighbor_logical is None:
-                        print(f"[DEBUG] MOVE BACK logical({moving_logical}) from physical({current_physical}) to empty physical({prev_physical})")
                         
                         # Update mappings
                         old_physical = current_physical
@@ -260,16 +245,11 @@ def naive_transpiler(
 
                     # Apply the swap
                     apply_swap(moving_logical, neighbor_logical, current_physical, prev_physical)
-                    
-                    print(f"[DEBUG] Undo SWAP logical({moving_logical},{neighbor_logical}) physical({current_physical},{prev_physical})")
-                    
+                                        
                     current_physical = prev_physical
 
                 # Verify we restored correctly
                 if physical_pos != saved_physical_pos:
-                    print(f"[WARNING] Mapping mismatch after undo!")
-                    print(f"Expected: {saved_physical_pos}")
-                    print(f"Got: {physical_pos}")
                     # Force restore to be safe
                     physical_pos = saved_physical_pos.copy()
                     logical_at_physical = saved_logical_at_physical.copy()
@@ -291,6 +271,6 @@ def naive_transpiler(
         topology=topology,
     )
 
-    print("[DEBUG] Transpilation finished")
+    print("[NAIVE] Transpilation finished")
 
     return transpiled_qc, embedding, metrics
