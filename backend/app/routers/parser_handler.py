@@ -4,9 +4,8 @@ from uuid import uuid4
 from ..parsers.qasm2_parser import qasm2_parser
 from ..parsers.qasm3_parser import qasm3_parser
 from ..core.QuantumCircuit import QuantumCircuit, Operation
-
+from .store import parsed_circuits
 router = APIRouter(prefix="", tags=["parsing"])
-parsed_circuits = {}  # simple in-memory store; replace with DB in prod
 
 @router.post("/parse-circuit")
 async def parse_circuit(file: UploadFile):
@@ -69,6 +68,8 @@ async def parse_circuit(file: UploadFile):
 
 @router.get("/circuit/{circuit_id}")
 async def get_circuit(circuit_id: str):
+    print("Getting circuit:", circuit_id)
+    print("Available circuits:", list(parsed_circuits.keys()))
     qc = parsed_circuits.get(circuit_id)
     if not qc:
         raise HTTPException(status_code=404, detail="Circuit not found")
