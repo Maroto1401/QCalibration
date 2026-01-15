@@ -46,29 +46,34 @@ const TranspilationSelectorPage: React.FC = () => {
   }>({ opened: false, embedding: null, algorithmName: '' });
 
   // Fetch normalized circuit
-  useEffect(() => {
-    const fetchNormalizedCircuit = async () => {
-      if (!circuit?.circuit_id) return;
-      
-      try {
-        const response = await axios.get<NormalizedCircuitResponse>(
-          `http://localhost:8000/normalize/circuit/${circuit.circuit_id}`
-        );
-        
-        setNormalizedCircuit({
-          status: 'loaded',
-          data: response.data.normalized_summary
-        });
-      } catch (err: any) {
-        setNormalizedCircuit({
-          status: 'error',
-          error: err?.response?.data?.detail || "Failed to normalize circuit"
-        });
-      }
-    };
+useEffect(() => {
+  const fetchNormalizedCircuit = async () => {
+    if (!circuit?.circuit_id || !topology?.basisGates) return;
 
-    fetchNormalizedCircuit();
-  }, [circuit?.circuit_id]);
+    try {
+      // Build query string manually
+      const params = topology.basisGates.map((g: string) => `target_basis=${encodeURIComponent(g)}`).join('&');
+      const url = `http://localhost:8000/normalize/circuit/${circuit.circuit_id}?${params}`;
+
+      console.log("Fetching normalized circuit with URL:", url); // debug
+
+      const response = await axios.get<NormalizedCircuitResponse>(url);
+
+      setNormalizedCircuit({
+        status: 'loaded',
+        data: response.data.normalized_summary
+      });
+    } catch (err: any) {
+      setNormalizedCircuit({
+        status: 'error',
+        error: err?.response?.data?.detail || "Failed to normalize circuit"
+      });
+    }
+  };
+
+  fetchNormalizedCircuit();
+}, [circuit?.circuit_id, topology?.basisGates]);
+
 
   const handleTranspile = useCallback(async (algorithm: string) => {
     setResults(prev => ({
