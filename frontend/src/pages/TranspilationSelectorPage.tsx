@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
-import { TranspilationResult } from "../types";
-import { Alert, Badge, Button, Container, Paper, Tabs, Title, Group } from "@mantine/core";
+import { TranspilationResult, CircuitSummary } from "../types";
+import { Alert, Badge, Button, Container, Paper, Tabs, Title, Group, Loader, Text } from "@mantine/core";
 import { TranspilationHeader } from "../components/TranspilationSelector/TranspilationHeader";
 import { TranspilationTabContent } from "../components/TranspilationSelector/TranspilationTabContent";
 import { useLocation, useNavigate } from "react-router-dom";
 import { IconAlertCircle, IconMap } from "@tabler/icons-react";
+import { QuantumCircuitVisualizer } from "../components/analysisComponents/QuantumCircuitVisualizer";
 import { AlgorithmSelector } from "../components/TranspilationSelector/AlgorithmSelector";
 import { EmbeddingVisualization } from "../components/TranspilationSelector/EmbeddingVisualization";
 
@@ -18,6 +19,11 @@ interface ResultWithStatus {
   error?: string;
 }
 
+interface NormalizedCircuitResponse {
+  circuit_id: string;
+  normalized_summary: CircuitSummary;
+}
+
 const TranspilationSelectorPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -27,11 +33,42 @@ const TranspilationSelectorPage: React.FC = () => {
     naive: { status: 'pending', data: circuit?.transpilationResult }
   });
 
+  const [normalizedCircuit, setNormalizedCircuit] = useState<{
+    status: 'loading' | 'loaded' | 'error';
+    data?: CircuitSummary;
+    error?: string;
+  }>({ status: 'loading' });
+
   const [embeddingView, setEmbeddingView] = useState<{
     opened: boolean;
     embedding: TranspilationResult['embedding'] | null;
     algorithmName: string;
   }>({ opened: false, embedding: null, algorithmName: '' });
+
+  // Fetch normalized circuit
+  useEffect(() => {
+    const fetchNormalizedCircuit = async () => {
+      if (!circuit?.circuit_id) return;
+      
+      try {
+        const response = await axios.get<NormalizedCircuitResponse>(
+          `http://localhost:8000/normalize/circuit/${circuit.circuit_id}`
+        );
+        
+        setNormalizedCircuit({
+          status: 'loaded',
+          data: response.data.normalized_summary
+        });
+      } catch (err: any) {
+        setNormalizedCircuit({
+          status: 'error',
+          error: err?.response?.data?.detail || "Failed to normalize circuit"
+        });
+      }
+    };
+
+    fetchNormalizedCircuit();
+  }, [circuit?.circuit_id]);
 
   const handleTranspile = useCallback(async (algorithm: string) => {
     setResults(prev => ({
@@ -111,6 +148,25 @@ const TranspilationSelectorPage: React.FC = () => {
       <Title order={1} mb="lg">Quantum Circuit Transpilation</Title>
 
       <TranspilationHeader circuit={circuit} topology={topology} />
+
+      {/* Normalized Circuit Visualizer */}
+      <Paper p="md" withBorder mb="lg">
+        <Title order={3} mb="md">Normalized Circuit</Title>
+        {normalizedCircuit.status === 'loading' && (
+          <Group justify="center" p="xl">
+            <Loader size="md" />
+            <Text>Loading normalized circuit...</Text>
+          </Group>
+        )}
+        {normalizedCircuit.status === 'error' && (
+          <Alert icon={<IconAlertCircle size={16} />} color="red" title="Normalization Error">
+            {normalizedCircuit.error}
+          </Alert>
+        )}
+        {normalizedCircuit.status === 'loaded' && normalizedCircuit.data && (
+          <QuantumCircuitVisualizer circuit={normalizedCircuit.data} />
+        )}
+      </Paper>
 
       <AlgorithmSelector
         onConfirm={handleAlgorithmConfirm}

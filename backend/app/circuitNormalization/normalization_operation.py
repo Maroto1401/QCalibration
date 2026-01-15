@@ -64,6 +64,14 @@ def normalize_operation(op: Operation) -> List[Operation]:
             _copy_op("rx", q, [PI], op),
             _copy_op("rz", q, [-PI / 2], op),
         ]
+    if name == "ry":
+        theta = p[0]  # ry(theta)
+        return [
+            _copy_op("rz", q, [-math.pi / 2], op),
+            _copy_op("rx", q, [theta], op),
+            _copy_op("rz", q, [math.pi / 2], op),
+        ]
+
 
     if name == "u3":
         if len(p) != 3:
