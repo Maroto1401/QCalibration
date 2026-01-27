@@ -1,5 +1,8 @@
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple
 from collections import deque, defaultdict
+import math
+
+from ..core.BaseModelClasses import Topology
 from ..core.QuantumCircuit import QuantumCircuit, Operation
 from ..utils.transpilation_utils import (
     build_calibration_maps,
@@ -7,12 +10,11 @@ from ..utils.transpilation_utils import (
     track_single_qubit_gate,
     track_two_qubit_gate,
     estimate_swap_error,
-    get_gate_duration,
-    is_connected
+    get_gate_duration
 )
 
+# --- Helper: adjacency + shortest path ---
 def _build_undirected_coupling(coupling_map):
-    """Build adjacency list representation for faster lookup."""
     adjacency = defaultdict(set)
     for u, v in coupling_map:
         adjacency[u].add(v)
@@ -20,10 +22,9 @@ def _build_undirected_coupling(coupling_map):
     return adjacency
 
 def _shortest_path(adjacency, start, end):
-    """Find shortest path using BFS with adjacency list."""
     if start == end:
         return [start]
-    
+
     queue = deque([[start]])
     visited = {start}
 
@@ -31,21 +32,47 @@ def _shortest_path(adjacency, start, end):
         path = queue.popleft()
         node = path[-1]
 
-        # Check all neighbors efficiently
         for neighbor in adjacency.get(node, set()):
             if neighbor == end:
                 return path + [neighbor]
-            
             if neighbor not in visited:
                 visited.add(neighbor)
                 queue.append(path + [neighbor])
 
-    # No path found
     return None
 
+# --- CX decomposition (basis: rz, sx, cz) ---
+def cx_decomposition(control: int, target: int) -> list[Operation]:
+    ops = []
+
+    # H on target
+    ops.append(Operation("rz", [target], [math.pi]))
+    ops.append(Operation("sx", [target]))
+    ops.append(Operation("rz", [target], [math.pi]))
+
+    ops.append(Operation("cz", [control, target]))
+
+    # H on target
+    ops.append(Operation("rz", [target], [math.pi]))
+    ops.append(Operation("sx", [target]))
+    ops.append(Operation("rz", [target], [math.pi]))
+
+    return ops
+
+# --- SWAP = 3 CX ---
+def swap_decomposition(q0: int, q1: int) -> list[Operation]:
+    ops = []
+    ops.extend(cx_decomposition(q0, q1))
+    ops.extend(cx_decomposition(q1, q0))
+    ops.extend(cx_decomposition(q0, q1))
+    return ops
+
+# ---------------------------------------------------------------------
+#                           NAIVE TRANSPILER
+# ---------------------------------------------------------------------
 def naive_transpiler(
     qc: QuantumCircuit,
-    topology
+    topology: Topology
 ) -> Tuple[QuantumCircuit, Dict[int, int], Dict[str, float]]:
 
     print("[NAIVE] Starting naive transpiler")
@@ -53,59 +80,31 @@ def naive_transpiler(
     # Identity embedding
     embedding = {i: i for i in range(qc.num_qubits)}
 
-    # UNDIRECTED coupling graph (adjacency list)
     coupling_adjacency = _build_undirected_coupling(topology.coupling_map)
-    
-    # Get all physical qubits in topology
-    all_physical_qubits = set()
-    for u, v in topology.coupling_map:
-        all_physical_qubits.add(u)
-        all_physical_qubits.add(v)
-    
-    max_physical_qubit = max(all_physical_qubits) if all_physical_qubits else -1
-    
-    # Validate topology can support circuit at least for initial embedding
-    if qc.num_qubits - 1 > max_physical_qubit:
-        raise ValueError(
-            f"Circuit requires {qc.num_qubits} qubits (0-{qc.num_qubits-1}), "
-            f"but topology only has qubits up to {max_physical_qubit}. "
-            f"The identity embedding cannot be used."
-        )
-    
-    gate_error_map, gate_duration_map = build_calibration_maps(topology)
 
+    gate_error_map, gate_duration_map = build_calibration_maps(topology)
     transpiled_qc = QuantumCircuit(qc.num_qubits, qc.num_clbits)
 
-    gates_inserted = 0
+    # ---------------- CORRECT METRICS ----------------
+    logical_swap_count = 0          # routing decisions
+    routing_gate_count = 0          # physical gates added
     total_gate_error = 0.0
     total_duration = 0.0
+    # -------------------------------------------------
 
-    # Logical → physical mapping
-    physical_pos = embedding.copy()  # logical -> physical
-    
-    # Physical → logical mapping
-    # Initialize with None for physical qubits that have no logical qubit
-    logical_at_physical = {}
-    for logical, physical in embedding.items():
-        logical_at_physical[physical] = logical
-    
-    # Helper function to get logical qubit at a physical location
-    # Returns None if physical qubit is empty
-    def get_logical_at_physical(physical):
-        return logical_at_physical.get(physical)
+    # Logical → physical maps
+    physical_pos = embedding.copy()
+    logical_at_physical = {v: k for k, v in embedding.items()}
 
-    # Helper function to update mappings after swap
-    def apply_swap(logical1, logical2, physical1, physical2):
-        # Update logical -> physical mapping
-        physical_pos[logical1] = physical2
-        physical_pos[logical2] = physical1
-        
-        # Update physical -> logical mapping
-        logical_at_physical[physical1] = logical2
-        logical_at_physical[physical2] = logical1
+    def get_logical_at_physical(p):
+        return logical_at_physical.get(p)
 
-    for idx, op in enumerate(qc.operations):
+    def apply_swap(l0, l1, p0, p1):
+        physical_pos[l0], physical_pos[l1] = p1, p0
+        logical_at_physical[p0], logical_at_physical[p1] = l1, l0
 
+    # ---------------- MAIN LOOP ----------------
+    for op in qc.operations:
         if not isinstance(op, Operation):
             transpiled_qc.operations.append(op)
             continue
@@ -113,164 +112,136 @@ def naive_transpiler(
         # SINGLE-QUBIT
         if len(op.qubits) == 1:
             transpiled_qc.operations.append(op)
-            error, duration = track_single_qubit_gate(
+            err, dur = track_single_qubit_gate(
                 op, physical_pos, gate_error_map, gate_duration_map
             )
-            total_gate_error += error
-            total_duration += duration
+            total_gate_error += err
+            total_duration += dur
 
         # TWO-QUBIT
         elif len(op.qubits) == 2:
             q0, q1 = op.qubits
             p0, p1 = physical_pos[q0], physical_pos[q1]
 
-            if p1 in coupling_adjacency.get(p0, set()):
+            # Already connected
+            if p1 in coupling_adjacency[p0]:
                 transpiled_qc.operations.append(op)
-                error, duration = track_two_qubit_gate(
+                err, dur = track_two_qubit_gate(
                     op, physical_pos, gate_error_map, gate_duration_map
                 )
-                total_gate_error += error
-                total_duration += duration
-            else:
+                total_gate_error += err
+                total_duration += dur
+                continue
 
-                path = _shortest_path(coupling_adjacency, p0, p1)
-                
-                if path is None:
-                    error_msg = (
-                        f"No routing path exists between physical qubits {p0} and {p1} "
-                        f"(logical qubits {q0} and {q1}). "
-                        f"The topology does not support this circuit with identity embedding."
-                    )
-                    raise RuntimeError(error_msg)
-                
-                
-                # Save the state before routing
-                saved_physical_pos = physical_pos.copy()
-                saved_logical_at_physical = logical_at_physical.copy()
-                
-                # Move logical qubit q0 along the path to meet q1
-                moving_logical = q0
-                current_physical = p0
+            # Route via shortest path
+            path = _shortest_path(coupling_adjacency, p0, p1)
+            if path is None:
+                raise RuntimeError(f"No path between {p0} and {p1}")
 
-                # Forward pass: move q0 to be adjacent to q1
-                for i in range(len(path) - 1):
-                    next_physical = path[i + 1]
-                    
-                    # Check what logical qubit is at the next physical location
-                    neighbor_logical = get_logical_at_physical(next_physical)
-                    
-                    # If the next physical qubit is empty, we just move there
-                    if neighbor_logical is None:
-                        
-                        # Update mappings: moving_logical goes to next_physical
-                        old_physical = current_physical
-                        physical_pos[moving_logical] = next_physical
-                        logical_at_physical[next_physical] = moving_logical
-                        # Remove from old location
-                        if old_physical in logical_at_physical:
-                            del logical_at_physical[old_physical]
-                        
-                        # No SWAP gate needed for moving to empty qubit
-                        # Just update current position
-                        current_physical = next_physical
-                        continue
-                    
-                    # If there's a logical qubit at next_physical, we need to SWAP
-                    swap_op = Operation(name="swap", qubits=[moving_logical, neighbor_logical])
-                    transpiled_qc.operations.append(swap_op)
-                    gates_inserted += 1
+            saved_phys = physical_pos.copy()
+            saved_log = logical_at_physical.copy()
 
-                    # SWAP metrics
-                    swap_error = estimate_swap_error(current_physical, next_physical, gate_error_map)
-                    cx_duration = get_gate_duration("cx", [current_physical, next_physical], gate_duration_map)
-                    total_gate_error += swap_error
-                    total_duration += 3 * cx_duration
+            moving_logical = q0
+            current_physical = p0
 
-                    # Apply the swap in our mappings
-                    apply_swap(moving_logical, neighbor_logical, current_physical, next_physical)
-                                        
-                    # Now moving_logical is at next_physical
+            # ---- Forward swaps ----
+            for i in range(len(path) - 1):
+                next_physical = path[i + 1]
+                neighbor_logical = get_logical_at_physical(next_physical)
+
+                if neighbor_logical is None:
+                    physical_pos[moving_logical] = next_physical
+                    logical_at_physical[next_physical] = moving_logical
+                    del logical_at_physical[current_physical]
                     current_physical = next_physical
+                    continue
 
-                # Now q0 and q1 should be adjacent
-                # Verify they are connected
-                p0_final = physical_pos[q0]
-                p1_final = physical_pos[q1]
-                
-                if p1_final not in coupling_adjacency.get(p0_final, set()):
-                    raise RuntimeError("Routing failed to make qubits adjacent")
-                
-                # Perform the 2Q gate
+                logical_swap_count += 1
+                swap_ops = swap_decomposition(current_physical, next_physical)
+                routing_gate_count += len(swap_ops)
 
-                transpiled_qc.operations.append(op)
-                error, duration = track_two_qubit_gate(
-                    op, physical_pos, gate_error_map, gate_duration_map
+                for sop in swap_ops:
+                    transpiled_qc.operations.append(sop)
+
+                swap_error = estimate_swap_error(
+                    current_physical, next_physical, gate_error_map
                 )
-                total_gate_error += error
-                total_duration += duration
+                cx_dur = get_gate_duration(
+                    "cx", [current_physical, next_physical], gate_duration_map
+                )
+                total_gate_error += swap_error
+                total_duration += 3 * cx_dur
 
-                # Reverse pass: move q0 back to original position
-                # We need to apply SWAPs in reverse order
-                moving_logical = q0
-                current_physical = p0_final
-                
-                for i in range(len(path) - 1, 0, -1):
-                    prev_physical = path[i - 1]
-                    
-                    # Check what logical qubit is at the previous physical location
-                    neighbor_logical = get_logical_at_physical(prev_physical)
-                    
-                    # If prev_physical is empty, just move there
-                    if neighbor_logical is None:
-                        
-                        # Update mappings
-                        old_physical = current_physical
-                        physical_pos[moving_logical] = prev_physical
-                        logical_at_physical[prev_physical] = moving_logical
-                        if old_physical in logical_at_physical:
-                            del logical_at_physical[old_physical]
-                        
-                        current_physical = prev_physical
-                        continue
-                    
-                    # SWAP with whatever is at prev_physical
-                    swap_op = Operation(name="swap", qubits=[moving_logical, neighbor_logical])
-                    transpiled_qc.operations.append(swap_op)
-                    gates_inserted += 1
+                apply_swap(moving_logical, neighbor_logical,
+                           current_physical, next_physical)
+                current_physical = next_physical
 
-                    swap_error = estimate_swap_error(current_physical, prev_physical, gate_error_map)
-                    cx_duration = get_gate_duration("cx", [current_physical, prev_physical], gate_duration_map)
-                    total_gate_error += swap_error
-                    total_duration += 3 * cx_duration
+            # Execute gate
+            transpiled_qc.operations.append(op)
+            err, dur = track_two_qubit_gate(
+                op, physical_pos, gate_error_map, gate_duration_map
+            )
+            total_gate_error += err
+            total_duration += dur
 
-                    # Apply the swap
-                    apply_swap(moving_logical, neighbor_logical, current_physical, prev_physical)
-                                        
+            # ---- Reverse swaps ----
+            for i in range(len(path) - 1, 0, -1):
+                prev_physical = path[i - 1]
+                neighbor_logical = get_logical_at_physical(prev_physical)
+
+                if neighbor_logical is None:
+                    physical_pos[moving_logical] = prev_physical
+                    logical_at_physical[prev_physical] = moving_logical
+                    del logical_at_physical[current_physical]
                     current_physical = prev_physical
+                    continue
 
-                # Verify we restored correctly
-                if physical_pos != saved_physical_pos:
-                    # Force restore to be safe
-                    physical_pos = saved_physical_pos.copy()
-                    logical_at_physical = saved_logical_at_physical.copy()
+                logical_swap_count += 1
+                swap_ops = swap_decomposition(current_physical, prev_physical)
+                routing_gate_count += len(swap_ops)
+
+                for sop in swap_ops:
+                    transpiled_qc.operations.append(sop)
+
+                swap_error = estimate_swap_error(
+                    current_physical, prev_physical, gate_error_map
+                )
+                cx_dur = get_gate_duration(
+                    "cx", [current_physical, prev_physical], gate_duration_map
+                )
+                total_gate_error += swap_error
+                total_duration += 3 * cx_dur
+
+                apply_swap(moving_logical, neighbor_logical,
+                           current_physical, prev_physical)
+                current_physical = prev_physical
+
+            # Restore original embedding
+            physical_pos = saved_phys
+            logical_at_physical = saved_log
 
         else:
             raise NotImplementedError(
                 f"Gate {op.name} with {len(op.qubits)} qubits not supported"
             )
 
+    # ---------------- FINALIZE ----------------
     transpiled_qc.depth = transpiled_qc.calculate_depth()
 
     metrics = calculate_circuit_metrics(
         original_qc=qc,
         transpiled_qc=transpiled_qc,
-        gates_inserted=gates_inserted,
+        logical_swap_count=logical_swap_count,  
         total_gate_error=total_gate_error,
         total_duration=total_duration,
         embedding=embedding,
         topology=topology,
     )
 
-    print("[NAIVE] Transpilation finished")
+    metrics.update({
+        "routing_gate_count": routing_gate_count,
+        "total_physical_gates": len(transpiled_qc.operations),
+    })
 
+    print("[NAIVE] Transpilation finished")
     return transpiled_qc, embedding, metrics

@@ -1,8 +1,11 @@
-from typing import Dict, List, Tuple, Set
+from typing import Dict, List, Tuple, Set, Optional
 from ..core.QuantumCircuit import QuantumCircuit, Operation
 import math
 
 def build_coupling_set(coupling_map: List[List[int]]) -> Set[Tuple[int, int]]:
+    """
+    Builds a set of valid edges for O(1) lookups.
+    """
     coupling_set: Set[Tuple[int, int]] = set()
     for edge in coupling_map:
         coupling_set.add((edge[0], edge[1]))
@@ -11,12 +14,17 @@ def build_coupling_set(coupling_map: List[List[int]]) -> Set[Tuple[int, int]]:
 
 
 def build_calibration_maps(topology) -> Tuple[Dict, Dict]:
+    """
+    Extracts gate properties from backend calibration data.
+    """
     gate_error_map = {}
     gate_duration_map = {}
 
     if topology.calibrationData:
         for gate_cal in topology.calibrationData.gates:
+            # Create a standardized key: (gate_name, sorted_qubits)
             key = (gate_cal.name.lower(), tuple(sorted(gate_cal.qubits)))
+            
             if gate_cal.gate_error is not None:
                 gate_error_map[key] = gate_cal.gate_error
             if gate_cal.duration is not None:
@@ -43,120 +51,155 @@ def get_gate_duration(
 ) -> float:
     key = (gate_name.lower(), tuple(sorted(qubits)))
     return gate_duration_map.get(key, default_duration)
+def estimate_swap_error(
+    physical_q0: int,
+    physical_q1: int,
+    gate_error_map: Dict,
+    default_cx_error: float = 0.01
+) -> float:
+    """
+    Estimates SWAP error assuming a decomposition into 3 CX gates.
+    
+    Logic:
+    1. Retrieve the native CX error for the specific qubit pair.
+    2. Calculate success probability for 3 sequential CXs.
+    3. Return the complement (failure probability).
+    
+    Approximation: For small errors, this is roughly 3 * cx_error.
+    """
+    # 1. Get the native CX error for this edge
+    cx_error = get_gate_error(
+        "cx", 
+        [physical_q0, physical_q1], 
+        gate_error_map, 
+        default_error=default_cx_error
+    )
 
+    # 2. Calculate compounded success probability 
+    # (1 - error) * (1 - error) * (1 - error)
+    swap_success_prob = (1.0 - cx_error) ** 3
+
+    # 3. Return total error
+    return 1.0 - swap_success_prob
 
 def calculate_circuit_metrics(
     original_qc: QuantumCircuit,
     transpiled_qc: QuantumCircuit,
-    gates_inserted: int,
+    logical_swap_count: int,
     total_gate_error: float,
     total_duration: float,
     embedding: Dict[int, int],
     topology,
 ) -> Dict[str, float]:
     """
-    Metrics use FIRST-ORDER additive error model (physically consistent).
+    Calculates execution metrics preserving the frontend API contract.
+    
+    internal math:
+    - 'Risk' keys use AVERAGES (useful for UI gauges).
+    - 'Fidelity' uses JOINT PROBABILITY (useful for actual success prediction).
     """
 
+    # --- 1. Structural Metrics ---
     original_depth = original_qc.depth
     transpiled_depth = transpiled_qc.depth
     depth_increase = transpiled_depth - original_depth
 
-    total_gates = len([
-        op for op in transpiled_qc.operations
-        if isinstance(op, Operation)
-    ])
+    # Count explicit operations
+    total_gates = 0
 
-    n_swap_gates = sum(
-        1 for op in transpiled_qc.operations
-        if isinstance(op, Operation) and op.name.lower() == "swap"
-    )
+    # --- 2. Error Metrics (The Math Part) ---
 
-    # IMPORTANT: SWAP = 3 CX gates
-    n_explicit_cx = sum(
-        1 for op in transpiled_qc.operations
-        if isinstance(op, Operation) and op.name.lower() == "cx"
-    )
-    n_cx_gates = n_explicit_cx + (3 * n_swap_gates)
+    # A. Gate Fidelity
+    # We assume 'total_gate_error' passed in is the sum of errors (Taylor expansion approximation).
+    # Probability of NO gate error:
+    gate_fidelity = max(1.0 - total_gate_error, 0.0)
 
-    # === Error model: additive, conservative ===
-    gate_error = min(total_gate_error, 1.0)
-
-    # Readout error (mean over used physical qubits)
-    readout_error = 0.0
-    if topology.calibrationData:
-        readout_errors = [
-            q.readout_error
-            for q in topology.calibrationData.qubits
-            if q.qubit in embedding.values() and q.readout_error is not None
-        ]
-        if readout_errors:
-            readout_error = sum(readout_errors) / len(readout_errors)
-
-    total_error_rate = min(gate_error + readout_error, 1.0)
-    fidelity = max(1.0 - total_error_rate, 0.0)
-
-    decoherence_errors = []
-
-    if topology.calibrationData:
-        for qubit_cal in topology.calibrationData.qubits:
-            if qubit_cal.qubit in embedding.values():
-                t1 = qubit_cal.t1
-                t2 = qubit_cal.t2
-                if t1 and t2:
-                    rate = (1.0 / t1) + (1.0 / t2)
-                    decoh_error = 1 - math.exp(-total_duration * rate)
-                    decoherence_errors.append(decoh_error)
-
-    decoherence_risk = (
-        sum(decoherence_errors) / len(decoherence_errors)
-        if decoherence_errors else 0.0
-    )
-
+    # B. Readout Metrics
     measured_logical = get_measured_logical_qubits(original_qc)
-    # Fallback: if no explicit measurements, assume all logical qubits are measured
     if not measured_logical:
-        measured_logical = list(range(original_qc.num_qubits))
-    measured_physical = [embedding[q] for q in measured_logical if q in embedding]
+        # If no explicit measure, assume we measure all logical qubits mapped
+        measured_logical = list(original_qc.qubits) if hasattr(original_qc, 'qubits') else []
 
     readout_errors = []
+    
     if topology.calibrationData:
-        for qubit_cal in topology.calibrationData.qubits:
-            if qubit_cal.qubit in measured_physical and qubit_cal.readout_error:
-                readout_errors.append(qubit_cal.readout_error)
+        for logical_q in measured_logical:
+            if logical_q in embedding:
+                phys_q = embedding[logical_q]
+                # Find calibration for this physical qubit
+                q_cal = next((q for q in topology.calibrationData.qubits if q.qubit == phys_q), None)
+                if q_cal and q_cal.readout_error is not None:
+                    readout_errors.append(q_cal.readout_error)
 
-    readout_error = (
-        sum(readout_errors) / len(readout_errors)
-        if readout_errors else 0.0
+    # UI Metric: Average Readout Error (easy to read)
+    avg_readout_error = sum(readout_errors) / len(readout_errors) if readout_errors else 0.0
+    
+    # Internal Metric: Probability all readouts succeed
+    # P_readout_success = (1-e1) * (1-e2) * ...
+    readout_fidelity = 1.0
+    for err in readout_errors:
+        readout_fidelity *= (1.0 - err)
+
+    # C. Decoherence Metrics
+    decoherence_errors_per_qubit = []
+    decoherence_fidelity = 1.0
+
+    if topology.calibrationData:
+        # We look at ALL active physical qubits, not just measured ones
+        active_physical_qubits = set(embedding.values())
+        
+        for qubit_cal in topology.calibrationData.qubits:
+            if qubit_cal.qubit in active_physical_qubits:
+                t1 = qubit_cal.t1
+                t2 = qubit_cal.t2
+                
+                if t1 and t2 and t1 > 0 and t2 > 0:
+                    rate = (1.0 / t1) + (1.0 / t2)
+                    
+                    # Probability that THIS qubit survives the whole duration
+                    prob_survival = math.exp(-total_duration * rate)
+                    prob_failure = 1.0 - prob_survival
+                    
+                    decoherence_errors_per_qubit.append(prob_failure)
+                    decoherence_fidelity *= prob_survival
+
+    # Average Decoherence Risk 
+    avg_decoherence_risk = (
+        sum(decoherence_errors_per_qubit) / len(decoherence_errors_per_qubit)
+        if decoherence_errors_per_qubit else 0.0
     )
 
-    def combine_errors(*errors: float) -> float:
-        prob_no_error = 1.0
-        for e in errors:
-            prob_no_error *= (1.0 - e)
-        return 1.0 - prob_no_error
+    # --- 3. Final Aggregation ---
 
-    effective_error = combine_errors(total_gate_error, decoherence_risk, readout_error)
-    fidelity = max(1.0 - effective_error, 0.0)
+    # Total Fidelity (ESP - Estimated Success Probability)
+    # F = F_gate * F_readout * F_decoherence
+    total_fidelity = gate_fidelity * readout_fidelity * decoherence_fidelity
+    
+    # Effective Error (The inverse of fidelity)
+    effective_total_error = 1.0 - total_fidelity
 
-    print(n_cx_gates)
     return {
+        # Timing
         "execution_time": total_duration,
+        
+        # User-facing "Risk" indicators (Averages/Sums)
         "gate_error": total_gate_error,
-        "decoherence_risk": decoherence_risk,
-        "readout_error": readout_error,
-        "effective_error": effective_error,
-        "fidelity": fidelity,
-        "gates_inserted": float(gates_inserted),
+        "decoherence_risk": avg_decoherence_risk,  # Average probability of decay per qubit
+        "readout_error": avg_readout_error,        # Average probability of readout fail
+        
+        # The Real "Score" (Joint Probabilities)
+        "effective_error": effective_total_error,
+        "fidelity": total_fidelity,
+        
+        # Structure
         "depth_increase": float(depth_increase),
-        "n_swap_gates": float(n_swap_gates),
-        "n_cx_gates": float(n_cx_gates),
+        "n_swap_gates": float(logical_swap_count),
         "total_gates": float(total_gates),
         "original_depth": float(original_depth),
         "transpiled_depth": float(transpiled_depth),
     }
 
-
+# --- Helper Functions ---
 
 def track_single_qubit_gate(
     op: Operation,
@@ -183,29 +226,8 @@ def track_two_qubit_gate(
     return error, duration
 
 
-def estimate_swap_error(
-    physical_q0: int,
-    physical_q1: int,
-    gate_error_map: Dict,
-    default_cx_error: float = 0.01
-) -> float:
-    """
-    SWAP = 3 CX gates (compounded).
-    """
-    cx_error = get_gate_error(
-        "cx", [physical_q0, physical_q1], gate_error_map, default_cx_error
-    )
-    return 1 - (1 - cx_error) ** 3
-
-
-def is_connected(
-    qubit1: int,
-    qubit2: int,
-    coupling_set: Set[Tuple[int, int]]
-) -> bool:
-    return (qubit1, qubit2) in coupling_set
-
 def get_measured_logical_qubits(qc: QuantumCircuit) -> List[int]:
+    """Identify which logical qubits are actually measured."""
     measured = set()
     for op in qc.operations:
         if isinstance(op, Operation) and op.name.lower() in {"measure", "measure_all"}:

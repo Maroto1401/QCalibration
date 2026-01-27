@@ -5,13 +5,14 @@ import ReactECharts from "echarts-for-react";
 export const TranspilationStatsChart: React.FC<{
   result: TranspilationResult;
   originalCircuit: any;
-}> = ({ result, originalCircuit }) => {
-  if (!result.metrics || !result.summary) return null;
+  normalizedCircuit: any;
+  transpilledCircuit: any;
+}> = ({ result, originalCircuit, normalizedCircuit, transpilledCircuit }) => {
+  if (!result.metrics || !transpilledCircuit) return null;
 
   // Approximate SWAP gates if not explicitly provided
-  const nSwapTranspiled = result.summary.n_swap_gates ?? Math.round(
-    (result.summary.n_cx_gates - originalCircuit.n_cx_gates) / 3
-  );
+  const nSwapNormalized = normalizedCircuit.n_swap_gates ?? 0;
+  const nSwapTranspiled = result.metrics.n_swap_gates ?? 0;
 
   const chartOption = {
     title: {
@@ -25,7 +26,7 @@ export const TranspilationStatsChart: React.FC<{
       axisPointer: { type: "shadow" },
     },
     legend: {
-      data: ["Original Circuit", "Transpiled Circuit"],
+      data: ["Original Circuit", "Normalized Circuit", "Transpiled Circuit"],
       top: 45,
     },
     grid: {
@@ -37,7 +38,7 @@ export const TranspilationStatsChart: React.FC<{
     },
     xAxis: {
       type: "category",
-      data: ["Total Gates", "2Q Gates", "Depth", "CX Gates", "SWAP Gates"],
+      data: ["Total Gates", "2Q Gates", "Depth", "SWAP Gates"],
       axisLabel: { interval: 0, rotate: 0 },
     },
     yAxis: {
@@ -52,20 +53,30 @@ export const TranspilationStatsChart: React.FC<{
           originalCircuit.n_gates,
           originalCircuit.n_two_qubit_gates,
           originalCircuit.depth,
-          originalCircuit.n_cx_gates,
           originalCircuit.n_swap_gates,
         ],
         itemStyle: { color: "#228be6" },
         label: { show: true, position: "top" },
       },
       {
+        name: "Normalized Circuit",
+        type: "bar",
+        data: [
+          normalizedCircuit.n_gates,
+          normalizedCircuit.n_two_qubit_gates,
+          normalizedCircuit.depth,
+          nSwapNormalized,
+        ],
+        itemStyle: { color: "#f59f00" },
+        label: { show: true, position: "top" },
+      },
+      {
         name: "Transpiled Circuit",
         type: "bar",
         data: [
-          result.summary.n_gates,
-          result.summary.n_two_qubit_gates,
-          result.summary.depth,
-          result.summary.n_cx_gates,
+          transpilledCircuit.n_gates,
+          transpilledCircuit.n_two_qubit_gates,
+          transpilledCircuit.depth,
           nSwapTranspiled,
         ],
         itemStyle: { color: "#fa5252" },

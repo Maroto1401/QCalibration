@@ -65,6 +65,7 @@ async def run_transpilation(request: TranspilationRequest):
     """
     # Get the circuit
     qc = parsed_circuits.get(request.circuit_id)
+    print("Transpilation requested for circuit ID:", request.circuit_id)
     if not qc:
         raise HTTPException(status_code=404, detail="Circuit not found")
     

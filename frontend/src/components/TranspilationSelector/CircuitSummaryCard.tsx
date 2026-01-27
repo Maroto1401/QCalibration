@@ -65,11 +65,6 @@ export default function CircuitCard({ circuit, metadata, onSelect }: Props) {
 
         {/* Key Gate Badges */}
         <Group wrap="wrap">
-          {summary.n_cx_gates > 0 && (
-            <Badge color="green" variant="light">
-              CX: {summary.n_cx_gates}
-            </Badge>
-          )}
           {summary.n_swap_gates > 0 && (
             <Badge color="red" variant="light">
               SWAP: {summary.n_swap_gates}

@@ -34,10 +34,12 @@ const TranspilationSelectorPage: React.FC = () => {
   });
 
   const [normalizedCircuit, setNormalizedCircuit] = useState<{
-    status: 'loading' | 'loaded' | 'error';
-    data?: CircuitSummary;
-    error?: string;
-  }>({ status: 'loading' });
+  status: 'loading' | 'loaded' | 'error';
+  circuitId?: string;        // ✅ store normalized circuit ID
+  data?: CircuitSummary;     // keep summary for visualization
+  error?: string;
+}>({ status: 'loading' });
+
 
   const [embeddingView, setEmbeddingView] = useState<{
     opened: boolean;
@@ -59,10 +61,12 @@ useEffect(() => {
 
       const response = await axios.get<NormalizedCircuitResponse>(url);
 
-      setNormalizedCircuit({
-        status: 'loaded',
-        data: response.data.normalized_summary
-      });
+setNormalizedCircuit({
+  status: 'loaded',
+  circuitId: response.data.circuit_id,  // ✅ save normalized circuit ID
+  data: response.data.normalized_summary
+});
+
     } catch (err: any) {
       setNormalizedCircuit({
         status: 'error',
@@ -75,7 +79,10 @@ useEffect(() => {
 }, [circuit?.circuit_id, topology?.basisGates]);
 
 
-  const handleTranspile = useCallback(async (algorithm: string) => {
+  const handleTranspile = useCallback(
+  async (algorithm: string) => {
+    if (!normalizedCircuit.circuitId) return;
+
     setResults(prev => ({
       ...prev,
       [algorithm]: { status: 'running' }
@@ -86,7 +93,7 @@ useEffect(() => {
         "http://localhost:8000/transpile/run",
         {
           algorithm,
-          circuit_id: circuit.circuit_id,
+          circuit_id: normalizedCircuit.circuitId,  // ✅ send the normalized circuit ID
           topology
         }
       );
@@ -104,13 +111,23 @@ useEffect(() => {
         }
       }));
     }
-  }, [circuit, topology]);
+  },
+  [normalizedCircuit.circuitId, topology]
+);
+
+
 
   useEffect(() => {
-    if (results.naive.status === 'pending') {
-      handleTranspile('naive');
-    }
-  }, [results.naive.status, handleTranspile]);
+  if (
+    results.naive.status === 'pending' &&
+    normalizedCircuit.status === 'loaded' &&
+    normalizedCircuit.circuitId
+  ) {
+    handleTranspile('naive');
+  }
+}, [results.naive.status, normalizedCircuit, handleTranspile]);
+
+
 
   if (!topology || !circuit) {
     return (
@@ -124,16 +141,19 @@ useEffect(() => {
   }
 
   const handleAlgorithmConfirm = async (algorithms: string[]) => {
-    const newResults: Record<string, ResultWithStatus> = { ...results };
-    algorithms.forEach(algo => {
-      newResults[algo] = { status: 'pending' };
-    });
-    setResults(newResults);
+  if (normalizedCircuit.status !== 'loaded' || !normalizedCircuit.circuitId) return;
 
-    for (const algo of algorithms) {
-      await handleTranspile(algo);
-    }
-  };
+  const newResults: Record<string, ResultWithStatus> = { ...results };
+  algorithms.forEach(algo => {
+    newResults[algo] = { status: 'pending' };
+  });
+  setResults(newResults);
+
+  for (const algo of algorithms) {
+    await handleTranspile(algo);
+  }
+};
+
 
   const handleViewEmbedding = (algorithm: string) => {
     const result = results[algorithm];
@@ -203,6 +223,7 @@ useEffect(() => {
                 <TranspilationTabContent
                   result={results.naive.data}
                   originalCircuit={circuit.summary}
+                  normalizedCircuit={normalizedCircuit.data}
                   isDefault={true}
                   onTranspile={() => {}}
                 />
@@ -227,6 +248,7 @@ useEffect(() => {
                 <TranspilationTabContent
                   result={results[algo].data!}
                   originalCircuit={circuit.summary}
+                  normalizedCircuit={normalizedCircuit.data}
                   isDefault={false}
                   onTranspile={() => handleTranspile(algo)}
                 />

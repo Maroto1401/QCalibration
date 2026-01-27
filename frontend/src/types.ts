@@ -4,7 +4,6 @@ export interface CircuitSummary {
   n_gates: number;
   two_qubit_gates: Record<string, number>;
   n_two_qubit_gates: number;
-  n_cx_gates: number;
   n_swap_gates: number;
   depth: number;
   gate_counts: Record<string, number>;

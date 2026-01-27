@@ -1,6 +1,7 @@
 import { Badge, Grid, Group, Paper, Stack, Title, Text } from "@mantine/core";
 import { CircuitData, Topology} from "../../types";
 import { IconCircuitSwitchOpen, IconCpu } from "@tabler/icons-react";
+import { GATE_COLORS } from "../../utils/GATE_CONSTANTS";
 
 export const TranspilationHeader: React.FC<{
   circuit: CircuitData;
@@ -42,11 +43,40 @@ export const TranspilationHeader: React.FC<{
                 {topology.available ? "Available" : "Unavailable"}
               </Badge>
             </Group>
-            <Group gap="md">
-              <Text size="sm" c="dimmed">{topology.numQubits} Qubits</Text>
-              <Text size="sm" c="dimmed">Connectivity: {topology.connectivity}</Text>
-              <Text size="sm" c="dimmed">Layout: {topology.topology_layout || 'unknown'}</Text>
+            <Group justify="space-between" align="flex-start" gap="md">
+          <Group gap="md">
+            <Text size="sm" c="dimmed">
+              {topology.numQubits} Qubits
+            </Text>
+            <Text size="sm" c="dimmed">
+              Connectivity: {topology.connectivity}
+            </Text>
+            <Text size="sm" c="dimmed">
+              Layout: {topology.topology_layout || "unknown"}
+            </Text>
+          </Group>
+
+          {/* Right side basis gates */}
+          {topology.basisGates && topology.basisGates.length > 0 && (
+            <Group gap="xs" wrap="wrap">
+              <Text size="xs" c="dimmed">
+                Basis Gates:
+              </Text>
+              {topology.basisGates.map((g) => (
+                <Badge
+                  key={g}
+                  color={GATE_COLORS[g] || "gray"}
+                  variant="light"
+                  size="xs"
+                >
+                  {g.toUpperCase()}
+                </Badge>
+              ))}
             </Group>
+          )}
+        </Group>
+
+            
           </Stack>
         </Grid.Col>
       </Grid>

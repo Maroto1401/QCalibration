@@ -8,9 +8,10 @@ import { TranspilationStatsChart } from "./TranspilationStatsChart";
 export const TranspilationTabContent: React.FC<{
   result: TranspilationResult;
   originalCircuit: any;
+  normalizedCircuit: any;
   isDefault: boolean;
   onTranspile: () => void;
-}> = ({ result, originalCircuit, isDefault, onTranspile }) => {
+}> = ({ result, originalCircuit, normalizedCircuit, isDefault, onTranspile }) => {
   const [viewMode, setViewMode] = useState<'table' | 'chart'>('table');
 
   // Pending state for non-default algorithms
@@ -55,11 +56,21 @@ export const TranspilationTabContent: React.FC<{
           Switch to {viewMode === 'table' ? 'Chart' : 'Table'} View
         </Button>
       </Group>
-      
+
       {viewMode === 'table' ? (
-        <TranspilationStatsTable result={result} originalCircuit={originalCircuit} />
+        <TranspilationStatsTable 
+          result={result} 
+          originalCircuit={originalCircuit} 
+          normalizedCircuit={normalizedCircuit}
+          transpilledCircuit={result.summary}
+        />
       ) : (
-        <TranspilationStatsChart result={result} originalCircuit={originalCircuit} />
+        <TranspilationStatsChart 
+          result={result} 
+          originalCircuit={originalCircuit}
+          normalizedCircuit={normalizedCircuit}
+          transpilledCircuit={result.summary}
+        />
       )}
     </Stack>
   );

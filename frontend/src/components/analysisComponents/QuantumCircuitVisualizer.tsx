@@ -1,4 +1,4 @@
-import { Box, Text, Group, Paper, ScrollArea } from "@mantine/core";
+import { Box, Text, Paper, ScrollArea } from "@mantine/core";
 import { CircuitSummary, Operation } from "../../types";
 import { Gate } from "./Gate";
 import { GATE_SPACING, MARGIN, QUBIT_SPACING } from "../../utils/GATE_CONSTANTS";
@@ -16,34 +16,50 @@ interface LayoutResult {
 export function calculateLayout(operations: Operation[], numQubits: number): LayoutResult {
   const columns: LayoutGate[] = [];
   const columnOccupied: Set<number>[] = []; // qubits occupied per column
+  const lastColumnForQubit = new Map<number, number>(); // NEW
 
   operations.forEach(op => {
     const qubits = op.qubits;
-    // Expand to include all qubits between min and max
+
+    // Expand to include all qubits between min and max (visual safety)
     const minQ = Math.min(...qubits);
     const maxQ = Math.max(...qubits);
-    const affectedQubits = [];
+    const affectedQubits: number[] = [];
     for (let q = minQ; q <= maxQ; q++) affectedQubits.push(q);
 
+    // --- Enforce causal order ---
     let col = 0;
+    for (const q of affectedQubits) {
+      const lastCol = lastColumnForQubit.get(q);
+      if (lastCol !== undefined) {
+        col = Math.max(col, lastCol + 1);
+      }
+    }
+
+    // --- Resolve spatial conflicts ---
     while (true) {
       if (!columnOccupied[col]) columnOccupied[col] = new Set();
 
       const conflict = affectedQubits.some(q => columnOccupied[col].has(q));
       if (!conflict) break;
+
       col++;
     }
 
-    // Place the gate in this column
+    // Place the gate
     columns.push({ operation: op, column: col });
 
-    // Mark qubits as occupied in this column
-    affectedQubits.forEach(q => columnOccupied[col].add(q));
+    // Mark qubits as occupied and update last-used column
+    affectedQubits.forEach(q => {
+      columnOccupied[col].add(q);
+      lastColumnForQubit.set(q, col);
+    });
   });
 
   const numColumns = columnOccupied.length;
   return { gates: columns, numColumns: numColumns || 1 };
 }
+
 
 
 interface QuantumCircuitVisualizerProps {
