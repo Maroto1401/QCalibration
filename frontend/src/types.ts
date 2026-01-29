@@ -1,3 +1,5 @@
+import { error } from "console";
+
 export interface CircuitSummary {
   n_qubits: number;
   n_clbits: number;
@@ -76,19 +78,46 @@ export interface TranspilationResult {
   algorithm: string;
   embedding: Record<number, number>;
   metrics: {
-    execution_time: number;       // total duration in ms
-    gate_error: number;           // accumulated gate error
-    decoherence_risk: number;     // risk based on T1/T2 and execution time
-    readout_error: number;        // expected measurement error
-    effective_error: number;      // total effective error
-    fidelity: number;             // expected circuit fidelity
-    gates_inserted: number;
-    depth_increase: number;
-    n_swap_gates: number;
-    n_cx_gates: number;
-    total_gates: number;
+    // Structural metrics
     original_depth: number;
     transpiled_depth: number;
+    depth_increase: number;
+    total_gates: number;
+    n_swap_gates: number;
+
+    // Gate error metrics
+    overall_gate_error: number;      // sum of all gate errors
+    gate_fidelity: number;           // product of gate fidelities
+
+    // Readout error metrics
+    overall_readout_error: number;   // sum of readout errors
+    avg_readout_error: number;       // average readout error
+    readout_fidelity: number;        // product of readout fidelities
+
+    // Decoherence metrics
+    avg_decoherence_error: number;   // average decoherence error across qubits
+    decoherence_fidelity: number;    // product of decoherence fidelities
+
+    // Execution time metrics
+    overall_execution_time: number;  // total circuit execution time in nanoseconds
+
+    // Final fidelity
+    effective_error: number;         // 1 - total_fidelity (combined error from all sources)
+    fidelity: number;                // total circuit fidelity (gate × readout × decoherence)
+
+    // Per-qubit detailed metrics (optional)
+    per_qubit_metrics?: Record<string, {
+      execution_time: number;        // nanoseconds this qubit is active
+      t1_error: number;              // T1 decoherence error probability
+      t2_error: number;              // T2 decoherence error probability
+      decoherence_error: number;     // combined T1+T2 decoherence error
+    }>;
+
+    // Legacy/additional metrics (for compatibility)
+    gates_inserted?: number;
+    n_cx_gates?: number;
+    routing_gate_count?: number;
+    total_physical_gates?: number;
   };
   summary: CircuitSummary;
   error?: string;                 // optional, if status = 'error'

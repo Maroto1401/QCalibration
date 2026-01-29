@@ -11,7 +11,6 @@ export default function GateBreakdownCard({ gateCounts }: GateBreakdownCardProps
   const sortedEntries = Object.entries(gateCounts).sort((a, b) => b[1] - a[1]);
   const dataAxis = sortedEntries.map(([gate]) => gate.toUpperCase());
   const data = sortedEntries.map(([, count]) => count);
-  const yMax = Math.max(...data) * 1.1; // add 10% padding for shadow
   const totalGates = data.reduce((sum, count) => sum + count, 0);
 
   const option = {

@@ -3,7 +3,6 @@ import { IconChartLine, IconRefresh, IconTable } from "@tabler/icons-react";
 import { TranspilationResult } from "../../types";
 import { useState } from "react";
 import { TranspilationStatsTable } from "./TranspilationStatsTable";
-import { TranspilationStatsChart } from "./TranspilationStatsChart";
 
 export const TranspilationTabContent: React.FC<{
   result: TranspilationResult;
@@ -47,31 +46,14 @@ export const TranspilationTabContent: React.FC<{
   // Completed state
   return (
     <Stack gap="md">
-      <Group justify="flex-end">
-        <Button 
-          variant="light" 
-          leftSection={viewMode === 'table' ? <IconChartLine size={16} /> : <IconTable size={16} />}
-          onClick={() => setViewMode(prev => prev === 'table' ? 'chart' : 'table')}
-        >
-          Switch to {viewMode === 'table' ? 'Chart' : 'Table'} View
-        </Button>
-      </Group>
 
-      {viewMode === 'table' ? (
         <TranspilationStatsTable 
           result={result} 
           originalCircuit={originalCircuit} 
           normalizedCircuit={normalizedCircuit}
           transpilledCircuit={result.summary}
         />
-      ) : (
-        <TranspilationStatsChart 
-          result={result} 
-          originalCircuit={originalCircuit}
-          normalizedCircuit={normalizedCircuit}
-          transpilledCircuit={result.summary}
-        />
-      )}
+      
     </Stack>
   );
 };

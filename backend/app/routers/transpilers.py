@@ -91,6 +91,7 @@ async def run_transpilation(request: TranspilationRequest):
         if algorithm == "naive":
             transpiled_qc, embedding, metrics = naive_transpiler(qc, request.topology)
         elif algorithm == "sabre":
+            print("Using SABRE transpiler")
             transpiled_qc, embedding, metrics = sabre_transpiler(qc, request.topology)
             #raise HTTPException(status_code=501, detail="SABRE algorithm not yet implemented")
             # transpiled_qc, embedding, metrics = sabre_transpiler(qc, request.topology)
@@ -109,9 +110,6 @@ async def run_transpilation(request: TranspilationRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Transpilation error: {str(e)}")
-    
-    execution_time = (time.time() - start_time) * 1000  # Convert to milliseconds
-    metrics["algorithm_execution_time"] = execution_time
     
     # Store transpiled circuit
     transpiled_circuit_id = str(uuid4())

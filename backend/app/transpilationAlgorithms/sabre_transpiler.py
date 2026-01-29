@@ -8,7 +8,6 @@ from ..utils.transpilation_utils import (
     calculate_circuit_metrics,
     track_single_qubit_gate,
     track_two_qubit_gate,
-    estimate_swap_error,
     get_gate_duration,
 )
 
@@ -149,14 +148,6 @@ def sabre_transpiler(
 
         # ---- LOGICAL SWAP METRICS ----
         logical_swap_count += 1
-        swap_error = estimate_swap_error(
-            embedding[swap_q0], embedding[swap_q1], gate_error_map
-        )
-        cx_duration = get_gate_duration(
-            "cx", [embedding[swap_q0], embedding[swap_q1]], gate_duration_map
-        )
-        total_gate_error += swap_error
-        total_duration += 3 * cx_duration
 
         # ---- PHYSICAL DECOMPOSITION ----
         hw_ops, n_hw = decompose_swap(swap_op, embedding)
@@ -179,8 +170,6 @@ def sabre_transpiler(
         original_qc=qc,
         transpiled_qc=transpiled_qc,
         logical_swap_count=logical_swap_count,
-        total_gate_error=total_gate_error,
-        total_duration=total_duration,
         embedding=embedding,
         topology=topology,
     )

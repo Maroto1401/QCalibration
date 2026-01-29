@@ -9,7 +9,6 @@ from ..utils.transpilation_utils import (
     calculate_circuit_metrics,
     track_single_qubit_gate,
     track_two_qubit_gate,
-    estimate_swap_error,
     get_gate_duration
 )
 
@@ -79,10 +78,10 @@ def naive_transpiler(
 
     # Identity embedding
     embedding = {i: i for i in range(qc.num_qubits)}
-
     coupling_adjacency = _build_undirected_coupling(topology.coupling_map)
-
     gate_error_map, gate_duration_map = build_calibration_maps(topology)
+
+     # Initialize transpiled circuit
     transpiled_qc = QuantumCircuit(qc.num_qubits, qc.num_clbits)
 
     # ---------------- CORRECT METRICS ----------------
@@ -95,7 +94,7 @@ def naive_transpiler(
     # Logical → physical maps
     physical_pos = embedding.copy()
     logical_at_physical = {v: k for k, v in embedding.items()}
-
+    print("[NAIVE] Initial embedding: Done")
     def get_logical_at_physical(p):
         return logical_at_physical.get(p)
 
@@ -163,15 +162,6 @@ def naive_transpiler(
                 for sop in swap_ops:
                     transpiled_qc.operations.append(sop)
 
-                swap_error = estimate_swap_error(
-                    current_physical, next_physical, gate_error_map
-                )
-                cx_dur = get_gate_duration(
-                    "cx", [current_physical, next_physical], gate_duration_map
-                )
-                total_gate_error += swap_error
-                total_duration += 3 * cx_dur
-
                 apply_swap(moving_logical, neighbor_logical,
                            current_physical, next_physical)
                 current_physical = next_physical
@@ -203,15 +193,6 @@ def naive_transpiler(
                 for sop in swap_ops:
                     transpiled_qc.operations.append(sop)
 
-                swap_error = estimate_swap_error(
-                    current_physical, prev_physical, gate_error_map
-                )
-                cx_dur = get_gate_duration(
-                    "cx", [current_physical, prev_physical], gate_duration_map
-                )
-                total_gate_error += swap_error
-                total_duration += 3 * cx_dur
-
                 apply_swap(moving_logical, neighbor_logical,
                            current_physical, prev_physical)
                 current_physical = prev_physical
@@ -224,16 +205,13 @@ def naive_transpiler(
             raise NotImplementedError(
                 f"Gate {op.name} with {len(op.qubits)} qubits not supported"
             )
-
     # ---------------- FINALIZE ----------------
     transpiled_qc.depth = transpiled_qc.calculate_depth()
 
     metrics = calculate_circuit_metrics(
         original_qc=qc,
         transpiled_qc=transpiled_qc,
-        logical_swap_count=logical_swap_count,  
-        total_gate_error=total_gate_error,
-        total_duration=total_duration,
+        logical_swap_count=logical_swap_count,
         embedding=embedding,
         topology=topology,
     )
