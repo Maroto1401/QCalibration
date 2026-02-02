@@ -24,7 +24,6 @@ class Operation:
         self.params = params or []
         self.condition = condition
         self.metadata = metadata or {}
-
     def __repr__(self):
         return f"Operation(name={self.name}, qubits={self.qubits}, params={self.params})"
 
@@ -293,7 +292,6 @@ class QuantumCircuit:
             circuit_depth = qc.depth()
         )
         for instr, qargs, cargs in qc.data:
-            print(f"Processing instruction: {instr.name} on qubits {qargs} and classical args {cargs}")
             name = instr.name
             params = [float(p) for p in instr.params]
             qubits = [qc.qubits.index(q) for q in qargs]
@@ -343,4 +341,54 @@ class QuantumCircuit:
         except Exception as e:
             raise ValueError(f"Failed to parse QASM3: {e}")
         
+    # ------------------------------------------
+    # Export to QASM2
+    # ------------------------------------------
+    def to_qasm2(self, include_header: bool = True) -> str:
+        """
+        Convert this QuantumCircuit to OpenQASM 2.0 format.
+        
+        Args:
+            include_header: Whether to include 'OPENQASM 2.0;' header (default: True)
+            
+        Returns:
+            OpenQASM 2.0 formatted string
+        """
+        from .QASM2_exporter import circuit_to_qasm2
+        return circuit_to_qasm2(self, include_header=include_header)
+    
+    def save_qasm2(self, filepath: str, include_header: bool = True) -> None:
+        """
+        Export this QuantumCircuit to a QASM2 file.
+        
+        Args:
+            filepath: Path where the QASM2 file will be saved
+            include_header: Whether to include 'OPENQASM 2.0;' header (default: True)
+            
+        Raises:
+            IOError: If file cannot be written
+        
+        """
+        qasm2_str = self.to_qasm2(include_header=include_header)
+        try:
+            with open(filepath, 'w') as f:
+                f.write(qasm2_str)
+            print(f"Successfully saved QASM2 circuit to {filepath}")
+        except IOError as e:
+            raise IOError(f"Failed to save QASM2 file to {filepath}: {e}")
+    
+    def to_qasm2_bytes(self, include_header: bool = True) -> bytes:
+        """
+        Convert this QuantumCircuit to OpenQASM 2.0 format as bytes.
+        
+        Useful for returning as a file download in FastAPI.
+        
+        Args:
+            include_header: Whether to include 'OPENQASM 2.0;' header (default: True)
+            
+        Returns:
+            QASM2 content as bytes (UTF-8 encoded)
+        """
+        qasm2_str = self.to_qasm2(include_header=include_header)
+        return qasm2_str.encode('utf-8')        
 

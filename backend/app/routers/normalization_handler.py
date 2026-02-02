@@ -16,10 +16,10 @@ async def get_normalized_circuit(
     Normalize a circuit to canonical IR and then map to a target basis.
     target_basis: list of gate names as query parameters.
     """
+
     qc = parsed_circuits.get(circuit_id)
     if not qc:
         raise HTTPException(status_code=404, detail="Circuit not found")
-
     try:
         # Step 1: normalize to canonical IR
         normalized_qc = internal_normalization_circuit.normalize_circuit(qc)
@@ -73,7 +73,6 @@ async def get_normalized_circuit(
             "circuitConnectivity": parsed_circuit_connectivity
         }
 
-        print(f"[DEBUG] Normalized circuit stored with ID: {normalized_circuit_id}")
         return {
             "circuit_id": normalized_circuit_id,  # ✅ use this for transpilation
             "normalized_summary": summary

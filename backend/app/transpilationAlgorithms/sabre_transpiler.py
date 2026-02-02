@@ -1,3 +1,4 @@
+import math
 from typing import Dict, Tuple
 import random
 from collections import defaultdict, deque
@@ -8,7 +9,6 @@ from ..utils.transpilation_utils import (
     calculate_circuit_metrics,
     track_single_qubit_gate,
     track_two_qubit_gate,
-    get_gate_duration,
 )
 
 # ======================= SABRE TRANSPILER =======================
@@ -49,17 +49,22 @@ def sabre_transpiler(
         ops = []
 
         cx_pairs = [(p0, p1), (p1, p0), (p0, p1)]
-        for a, b in cx_pairs:
-            ops.extend([
-                Operation("rz", [a]),
-                Operation("sx", [a]),
-                Operation("rz", [a]),
-                Operation("sx", [b]),
-                Operation("cz", [a, b]),
-                Operation("rz", [b]),
-            ])
+        for control, target in cx_pairs:
+            # H on target
+            ops.append(Operation("rz", qubits=[target], params=[math.pi]))
+            ops.append(Operation("sx", qubits=[target]))
+            ops.append(Operation("rz", qubits=[target], params=[math.pi]))
+
+            # CZ
+            ops.append(Operation("cz", qubits= [control, target]))
+
+            # H on target
+            ops.append(Operation("rz", qubits=[target], params=[math.pi]))
+            ops.append(Operation("sx", qubits=[target]))
+            ops.append(Operation("rz", qubits=[target], params=[math.pi]))
 
         return ops, len(ops)
+
 
     # ================= MAIN LOOP =================
     while not all(executed):

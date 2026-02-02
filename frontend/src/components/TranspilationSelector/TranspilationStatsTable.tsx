@@ -23,7 +23,6 @@ import {
   IconChartBar,
 } from "@tabler/icons-react";
 import ReactECharts from "echarts-for-react";
-import * as echarts from "echarts";
 import { CircuitSummary, TranspilationResult } from "../../types";
 
 export const TranspilationStatsTable: React.FC<{
@@ -94,6 +93,26 @@ export const TranspilationStatsTable: React.FC<{
     },
   ];
 
+  // ---- File download and clipboard helpers ----
+  const downloadTextFile = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const copyToClipboard = async (text: string) => {
+    await navigator.clipboard.writeText(text);
+  };
+
+
   // ---- Helper to get status icon ----
   const getErrorStatus = (error: number) => {
     if (error < 0.01) return { color: "green", icon: IconCheck };
@@ -121,6 +140,10 @@ export const TranspilationStatsTable: React.FC<{
               <Tabs.Tab value="per-qubit" leftSection={<IconClock size={14} />}>
                 Per-Qubit Metrics
               </Tabs.Tab>
+              <Tabs.Tab value="qasm" leftSection={<IconGauge size={14} />}>
+                QASM
+              </Tabs.Tab>
+
             </Tabs.List>
 
             {/* ---- TAB 1: OVERVIEW ---- */}
@@ -757,6 +780,118 @@ export const TranspilationStatsTable: React.FC<{
                 )}
               </Stack>
             </Tabs.Panel>
+
+            {/* ---- TAB 5: QASM EXPORT ---- */}
+            
+            <Tabs.Panel value="qasm" pt="xl">
+              <Stack gap="lg">
+                <Card withBorder p="md" radius="md">
+                  <Title order={4}>Circuit QASM2 Export</Title>
+                  <Text size="sm" c="dimmed">
+                    Download or copy the OpenQASM 2.0 representations of the circuits.
+                  </Text>
+                </Card>
+
+                {/* ---- Normalized (Basis) Circuit ---- */}
+                <Card withBorder p="md" radius="md">
+                  <Stack gap="sm">
+                    <Group justify="space-between">
+                      <Text fw={600}>Normalized (Basis) Circuit</Text>
+                      <Group gap="xs">
+                        <Tooltip label="Copy QASM to clipboard">
+                          <Badge
+                            variant="light"
+                            color="blue"
+                            style={{ cursor: "pointer" }}
+                            onClick={() => copyToClipboard(result.normalized_qasm2)}
+                          >
+                            Copy
+                          </Badge>
+                        </Tooltip>
+                        <Tooltip label="Download QASM file">
+                          <Badge
+                            variant="light"
+                            color="green"
+                            style={{ cursor: "pointer" }}
+                            onClick={() =>
+                              downloadTextFile(
+                                result.normalized_qasm2,
+                                `normalized_${result.algorithm}.qasm`
+                              )
+                            }
+                          >
+                            Download
+                          </Badge>
+                        </Tooltip>
+                      </Group>
+                    </Group>
+
+                    <pre
+                      style={{
+                        maxHeight: 300,
+                        overflow: "auto",
+                        background: "#f8f9fa",
+                        padding: "12px",
+                        borderRadius: "6px",
+                        fontSize: "12px",
+                      }}
+                    >
+                      {result.normalized_qasm2}
+                    </pre>
+                  </Stack>
+                </Card>
+
+                {/* ---- Fully Transpiled Circuit ---- */}
+                <Card withBorder p="md" radius="md">
+                  <Stack gap="sm">
+                    <Group justify="space-between">
+                      <Text fw={600}>Fully Transpiled (Routed) Circuit</Text>
+                      <Group gap="xs">
+                        <Tooltip label="Copy QASM to clipboard">
+                          <Badge
+                            variant="light"
+                            color="blue"
+                            style={{ cursor: "pointer" }}
+                            onClick={() => copyToClipboard(result.transpiled_qasm2)}
+                          >
+                            Copy
+                          </Badge>
+                        </Tooltip>
+                        <Tooltip label="Download QASM file">
+                          <Badge
+                            variant="light"
+                            color="green"
+                            style={{ cursor: "pointer" }}
+                            onClick={() =>
+                              downloadTextFile(
+                                result.transpiled_qasm2,
+                                `transpiled_${result.algorithm}.qasm`
+                              )
+                            }
+                          >
+                            Download
+                          </Badge>
+                        </Tooltip>
+                      </Group>
+                    </Group>
+
+                    <pre
+                      style={{
+                        maxHeight: 300,
+                        overflow: "auto",
+                        background: "#f8f9fa",
+                        padding: "12px",
+                        borderRadius: "6px",
+                        fontSize: "12px",
+                      }}
+                    >
+                      {result.transpiled_qasm2}
+                    </pre>
+                  </Stack>
+                </Card>
+              </Stack>
+            </Tabs.Panel>
+
           </Tabs>
         </Stack>
       </Card>

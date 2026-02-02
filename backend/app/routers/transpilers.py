@@ -57,6 +57,9 @@ def generate_circuit_summary(qc: QuantumCircuit) -> Dict:
 
 # ==================== MAIN ENDPOINT ====================
 
+# Add a new cache for normalized QASM2
+normalized_qasm2_cache: Dict[str, str] = {}
+
 @router.post("/run", response_model=TranspilationResult)
 async def run_transpilation(request: TranspilationRequest):
     """
@@ -68,7 +71,10 @@ async def run_transpilation(request: TranspilationRequest):
     print("Transpilation requested for circuit ID:", request.circuit_id)
     if not qc:
         raise HTTPException(status_code=404, detail="Circuit not found")
-    
+    # Generate normalized QASM2 only once (cache it)
+    if request.circuit_id not in normalized_qasm2_cache:
+        normalized_qasm2_cache[request.circuit_id] = qc.to_qasm2()
+    normalized_qasm2 = normalized_qasm2_cache[request.circuit_id]
     # Validate topology
     if qc.num_qubits > request.topology.numQubits:
         raise HTTPException(
@@ -118,10 +124,15 @@ async def run_transpilation(request: TranspilationRequest):
     # Generate summary for transpiled circuit
     summary = generate_circuit_summary(transpiled_qc)
     
+    # Generate QASM2 only for the transpiled circuit (changes per algorithm)
+    transpiled_qasm2 = transpiled_qc.to_qasm2()
+
     return TranspilationResult(
         transpiled_circuit_id=transpiled_circuit_id,
         algorithm=request.algorithm,
         embedding=embedding,
         metrics=metrics,
-        summary=summary
+        summary=summary,
+        transpiled_qasm2=transpiled_qasm2,
+        normalized_qasm2=normalized_qasm2
     )

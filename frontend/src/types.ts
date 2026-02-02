@@ -120,5 +120,7 @@ export interface TranspilationResult {
     total_physical_gates?: number;
   };
   summary: CircuitSummary;
+  transpiled_qasm2: string;
+  normalized_qasm2: string;
   error?: string;                 // optional, if status = 'error'
 }

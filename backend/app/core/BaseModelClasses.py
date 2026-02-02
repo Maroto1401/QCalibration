@@ -89,8 +89,6 @@ class TranspilationMetrics(BaseModel):
     routing_gate_count: Optional[float] = None
     total_physical_gates: Optional[float] = None
 
-
-
 class TranspilationResult(BaseModel):
     """Complete transpilation result with metrics and circuit summaries"""
     transpiled_circuit_id: str
@@ -98,3 +96,5 @@ class TranspilationResult(BaseModel):
     embedding: Dict[int, int]              # logical_qubit -> physical_qubit mapping
     metrics: TranspilationMetrics
     summary: Dict
+    transpiled_qasm2: str
+    normalized_qasm2: str

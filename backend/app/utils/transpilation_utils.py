@@ -63,6 +63,14 @@ def calculate_per_qubit_metrics(
     """
     Calculate per-qubit execution times and decoherence metrics.
     
+    Uses the standard quantum physics model for decoherence:
+    - T1: Energy relaxation (exponential decay with rate 1/T1)
+    - T2: Dephasing time (exponential decay with rate 1/T2)
+    - Combined: F_decoherence = exp(-t_exec / T1) * exp(-t_exec / T2)
+              = exp(-t_exec * (1/T1 + 1/T2))
+    
+    This is the model used in IBM Qiskit, Cirq, and standard quantum computing frameworks.
+    
     Returns:
         per_qubit_duration: Dict mapping physical_qubit -> total_execution_time
         per_qubit_decoherence_error: Dict mapping physical_qubit -> decoherence_error_probability
@@ -101,6 +109,7 @@ def calculate_per_qubit_metrics(
                 per_qubit_duration[phys_q1] += gate_duration
     
     # Calculate T1 and T2 decoherence errors for each qubit
+    # Standard quantum physics model: combined decoherence = T1 * T2 effects
     if topology.calibrationData:
         for qubit_cal in topology.calibrationData.qubits:
             phys_q = qubit_cal.qubit
@@ -109,26 +118,41 @@ def calculate_per_qubit_metrics(
                 t2 = qubit_cal.t2
                 t_exec = per_qubit_duration.get(phys_q, 0.0)
                 
+                # Calculate individual T1 and T2 errors
                 if t1 and t1 > 0:
                     # T1 error: probability of energy relaxation
-                    t1_error = 1.0 - math.exp(-t_exec / t1)
+                    # Fidelity from T1: F_T1 = exp(-t_exec / T1)
+                    t1_fidelity = math.exp(-t_exec / t1)
+                    t1_error = 1.0 - t1_fidelity
                     per_qubit_t1_t2_errors[phys_q]['t1_error'] = t1_error
+                else:
+                    t1_fidelity = 1.0
                 
                 if t2 and t2 > 0:
                     # T2 error: probability of dephasing
-                    t2_error = 1.0 - math.exp(-t_exec / t2)
+                    # Fidelity from T2: F_T2 = exp(-t_exec / T2)
+                    t2_fidelity = math.exp(-t_exec / t2)
+                    t2_error = 1.0 - t2_fidelity
                     per_qubit_t1_t2_errors[phys_q]['t2_error'] = t2_error
+                else:
+                    t2_fidelity = 1.0
                 
-                # Combined decoherence error (conservative estimate)
+                # Combined decoherence (standard physics model)
+                # Fidelity_decoherence = exp(-t_exec / T1) * exp(-t_exec / T2)
+                #                      = exp(-t_exec * (1/T1 + 1/T2))
+                # This assumes T1 and T2 processes are independent
                 if t1 and t2 and t1 > 0 and t2 > 0:
-                    # Decoherence fidelity using combined rate
-                    decoherence_rate = (1.0 / t1) + (1.0 / t2)
-                    decoherence_fidelity = math.exp(-t_exec * decoherence_rate)
+                    decoherence_fidelity = t1_fidelity * t2_fidelity
                     decoherence_error = 1.0 - decoherence_fidelity
                     per_qubit_decoherence_error[phys_q] = decoherence_error
+                elif t1 and t1 > 0:
+                    # Only T1 available
+                    per_qubit_decoherence_error[phys_q] = t1_error
+                elif t2 and t2 > 0:
+                    # Only T2 available
+                    per_qubit_decoherence_error[phys_q] = t2_error
     
     return per_qubit_duration, per_qubit_decoherence_error, per_qubit_t1_t2_errors
-
 
 def calculate_circuit_metrics(
     original_qc: QuantumCircuit,

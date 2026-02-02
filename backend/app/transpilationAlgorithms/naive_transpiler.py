@@ -9,7 +9,6 @@ from ..utils.transpilation_utils import (
     calculate_circuit_metrics,
     track_single_qubit_gate,
     track_two_qubit_gate,
-    get_gate_duration
 )
 
 # --- Helper: adjacency + shortest path ---
@@ -45,16 +44,16 @@ def cx_decomposition(control: int, target: int) -> list[Operation]:
     ops = []
 
     # H on target
-    ops.append(Operation("rz", [target], [math.pi]))
-    ops.append(Operation("sx", [target]))
-    ops.append(Operation("rz", [target], [math.pi]))
+    ops.append(Operation("rz", qubits=[target], params=[math.pi]))
+    ops.append(Operation("sx", qubits=[target]))
+    ops.append(Operation("rz", qubits=[target], params=[math.pi]))
 
-    ops.append(Operation("cz", [control, target]))
+    ops.append(Operation("cz", qubits=[control, target]))
 
     # H on target
-    ops.append(Operation("rz", [target], [math.pi]))
-    ops.append(Operation("sx", [target]))
-    ops.append(Operation("rz", [target], [math.pi]))
+    ops.append(Operation("rz", qubits=[target], params=[math.pi]))
+    ops.append(Operation("sx", qubits=[target]))
+    ops.append(Operation("rz", qubits=[target], params=[math.pi]))
 
     return ops
 
