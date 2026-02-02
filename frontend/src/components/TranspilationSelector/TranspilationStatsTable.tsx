@@ -782,7 +782,7 @@ export const TranspilationStatsTable: React.FC<{
             </Tabs.Panel>
 
             {/* ---- TAB 5: QASM EXPORT ---- */}
-            
+
             <Tabs.Panel value="qasm" pt="xl">
               <Stack gap="lg">
                 <Card withBorder p="md" radius="md">
@@ -875,6 +875,43 @@ export const TranspilationStatsTable: React.FC<{
                       </Group>
                     </Group>
 
+                    {/* ---- Embedding Info ---- */}
+                    {result.embedding && (
+                      <Card withBorder radius="sm" p="sm" bg="gray.0">
+                        <Stack gap={4}>
+                          <Text size="sm" fw={500}>
+                            Final Qubit Embedding (Logical → Physical)
+                          </Text>
+
+                          {/* Show as pretty JSON for readability */}
+                          <pre
+                            style={{
+                              fontSize: "12px",
+                              margin: 0,
+                              whiteSpace: "pre-wrap",
+                            }}
+                          >
+                            {JSON.stringify(result.embedding, null, 2)}
+                          </pre>
+
+                          <Group justify="flex-end">
+                            <Badge
+                              variant="light"
+                              color="gray"
+                              style={{ cursor: "pointer" }}
+                              onClick={() =>
+                                copyToClipboard(JSON.stringify(result.embedding, null, 2))
+                              }
+                            >
+                              Copy embedding JSON
+                            </Badge>
+                          </Group>
+                        </Stack>
+                      </Card>
+                    )}
+
+
+                    {/* ---- QASM ---- */}
                     <pre
                       style={{
                         maxHeight: 300,
@@ -889,6 +926,7 @@ export const TranspilationStatsTable: React.FC<{
                     </pre>
                   </Stack>
                 </Card>
+
               </Stack>
             </Tabs.Panel>
 
