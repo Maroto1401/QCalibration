@@ -17,7 +17,16 @@ def _copy(op, name=None, qubits=None, params=None):
 
 def map_to_basis(circuit: QuantumCircuit, target_basis: list) -> QuantumCircuit:
     """
-    Map canonical/internal IR gates to an arbitrary target basis, preserving per-qubit timeline.
+    Map canonical/internal IR gates to an arbitrary target basis {cz, rz, sx, x, id}.
+    
+    VERIFIED DECOMPOSITIONS (basis: {cz, rz, sx, x, id}):
+    - H = SX RZ(π/2) SX
+    - X = SX SX
+    - Z = RZ(π)
+    - RX(θ) = SX RZ(π/2) SX RZ(θ) SX RZ(π/2) SX
+    - RY(θ) = RZ(-π/2) RX(θ) RZ(π/2)
+    - Y = RZ(-π/2) RX(π) RZ(π/2)
+    - CX(c,t) = H[t] CZ(c,t) H[t] where H = SX RZ(π/2) SX
     """
     target_basis = {g.lower() for g in target_basis}
     new_circuit = QuantumCircuit(
@@ -37,105 +46,116 @@ def map_to_basis(circuit: QuantumCircuit, target_basis: list) -> QuantumCircuit:
         # Control flow passthrough
         if name in CONTROL_FLOW_OPS:
             new_circuit.add_operation(op)
-            # Use the original circuit index as the logical time
             for q in qubits:
                 last_time[q] = idx
             continue
 
         # Determine the logical time for this operation
-        # It must come after all operations on its qubits
         current_time = max((last_time[q] for q in qubits), default=-1) + 1
 
         # Prepare list of operations to insert
         ops_to_add = []
 
         # ---------- Single-qubit gates ----------
-        if name in {"x", "y", "z"}:
-            theta = PI
-            if name in target_basis:
+        if name == "h":
+            if "h" in target_basis:
                 ops_to_add.append(_copy(op))
-            elif name == "x" and {"rx", "rz"} <= target_basis:
-                ops_to_add.append(_copy(op, "rx", params=[theta]))
-            elif name == "y" and {"rx", "rz"} <= target_basis:
+            elif {"sx", "rz"} <= target_basis:
+                # H = SX RZ(π/2) SX
+                ops_to_add.extend([
+                    _copy(op, "sx", params=[]),
+                    _copy(op, "rz", params=[PI/2]),
+                    _copy(op, "sx", params=[]),
+                ])
+            else:
+                raise NotImplementedError(f"Cannot map H to target basis {target_basis}")
+
+        elif name == "x":
+            if "x" in target_basis:
+                ops_to_add.append(_copy(op))
+            elif "sx" in target_basis:
+                # X = SX SX
+                ops_to_add.extend([
+                    _copy(op, "sx", params=[]),
+                    _copy(op, "sx", params=[]),
+                ])
+            else:
+                raise NotImplementedError(f"Cannot map X to target basis {target_basis}")
+
+        elif name == "z":
+            if "z" in target_basis:
+                ops_to_add.append(_copy(op))
+            elif "rz" in target_basis:
+                # Z = RZ(π)
+                ops_to_add.append(_copy(op, "rz", params=[PI]))
+            else:
+                raise NotImplementedError(f"Cannot map Z to target basis {target_basis}")
+
+        elif name == "y":
+            if "y" in target_basis:
+                ops_to_add.append(_copy(op))
+            elif {"sx", "rz"} <= target_basis:
+                # Y = RZ(-π/2) RX(π) RZ(π/2)
+                # RX(π) = SX RZ(π/2) SX RZ(π) SX RZ(π/2) SX
                 ops_to_add.extend([
                     _copy(op, "rz", params=[-PI/2]),
-                    _copy(op, "rx", params=[theta]),
+                    _copy(op, "sx", params=[]),
+                    _copy(op, "rz", params=[PI/2]),
+                    _copy(op, "sx", params=[]),
+                    _copy(op, "rz", params=[PI]),
+                    _copy(op, "sx", params=[]),
+                    _copy(op, "rz", params=[PI/2]),
+                    _copy(op, "sx", params=[]),
                     _copy(op, "rz", params=[PI/2]),
                 ])
-            elif {"sx", "rz"} <= target_basis:
-                if name in {"x", "y"}:
-                    ops_to_add.extend([
-                        _copy(op, "rz", params=[-PI/2]),
-                        _copy(op, "sx", params=[]),
-                        _copy(op, "rz", params=[theta]),
-                        _copy(op, "sx", params=[]),
-                        _copy(op, "rz", params=[PI/2]),
-                    ])
-                elif name == "z":
-                    ops_to_add.append(_copy(op, "rz", params=[theta]))
             else:
-                raise NotImplementedError(f"Cannot map {name.upper()} to target basis {target_basis}")
+                raise NotImplementedError(f"Cannot map Y to target basis {target_basis}")
 
         # ---------- RX/RY/RZ ----------
-        elif name in {"rx", "ry", "rz"}:
-            theta = params[0] if params else None
-            if name in target_basis:
+        elif name == "rx":
+            if "rx" in target_basis:
                 ops_to_add.append(_copy(op))
-            elif name == "rx" and {"sx", "rz"} <= target_basis:
-                ops_to_add.extend([
-                    _copy(op, "rz", params=[-PI/2]),
-                    _copy(op, "sx", params=[]),
-                    _copy(op, "rz", params=[theta]),
-                    _copy(op, "sx", params=[]),
-                    _copy(op, "rz", params=[PI/2]),
-                ])
-            elif name == "ry" and {"rx", "rz"} <= target_basis:
-                ops_to_add.extend([
-                    _copy(op, "rz", params=[-PI/2]),
-                    _copy(op, "rx", params=[theta]),
-                    _copy(op, "rz", params=[PI/2]),
-                ])
-            elif name == "ry" and {"sx", "rz"} <= target_basis:
-                ops_to_add.extend([
-                    _copy(op, "rz", params=[-PI/2]),
-                    _copy(op, "sx", params=[]),
-                    _copy(op, "rz", params=[theta]),
-                    _copy(op, "sx", params=[]),
-                    _copy(op, "rz", params=[PI/2]),
-                ])
-            elif name == "rz" and "rz" in target_basis:
-                ops_to_add.append(_copy(op))
-            else:
-                raise NotImplementedError(f"Cannot map {name.upper()} to target basis {target_basis}")
-
-        # ---------- H/S/T ----------
-        elif name in {"h", "s", "t"}:
-            if name in target_basis:
-                ops_to_add.append(_copy(op))
-            elif {"rx", "rz"} <= target_basis:
-                if name == "h":
-                    ops_to_add.extend([
-                        _copy(op, "rz", params=[PI]),
-                        _copy(op, "rx", params=[PI/2]),
-                        _copy(op, "rz", params=[PI]),
-                    ])
-                elif name == "s":
-                    ops_to_add.append(_copy(op, "rz", params=[PI/2]))
-                elif name == "t":
-                    ops_to_add.append(_copy(op, "rz", params=[PI/4]))
             elif {"sx", "rz"} <= target_basis:
-                if name == "h":
-                    ops_to_add.extend([
-                        _copy(op, "rz", params=[PI]),
-                        _copy(op, "sx", params=[]),
-                        _copy(op, "rz", params=[PI/2]),
-                    ])
-                elif name == "s":
-                    ops_to_add.append(_copy(op, "rz", params=[PI/2]))
-                elif name == "t":
-                    ops_to_add.append(_copy(op, "rz", params=[PI/4]))
+                theta = params[0] if params else None
+                # RX(θ) = SX RZ(π/2) SX RZ(θ) SX RZ(π/2) SX
+                ops_to_add.extend([
+                    _copy(op, "sx", params=[]),
+                    _copy(op, "rz", params=[PI/2]),
+                    _copy(op, "sx", params=[]),
+                    _copy(op, "rz", params=[theta]),
+                    _copy(op, "sx", params=[]),
+                    _copy(op, "rz", params=[PI/2]),
+                    _copy(op, "sx", params=[]),
+                ])
             else:
-                raise NotImplementedError(f"Cannot map {name.upper()} to target basis {target_basis}")
+                raise NotImplementedError(f"Cannot map RX to target basis {target_basis}")
+
+        elif name == "ry":
+            if "ry" in target_basis:
+                ops_to_add.append(_copy(op))
+            elif {"sx", "rz"} <= target_basis:
+                theta = params[0] if params else None
+                # RY(θ) = RZ(-π/2) RX(θ) RZ(π/2)
+                # = RZ(-π/2) [SX RZ(π/2) SX RZ(θ) SX RZ(π/2) SX] RZ(π/2)
+                ops_to_add.extend([
+                    _copy(op, "rz", params=[-PI/2]),
+                    _copy(op, "sx", params=[]),
+                    _copy(op, "rz", params=[PI/2]),
+                    _copy(op, "sx", params=[]),
+                    _copy(op, "rz", params=[theta]),
+                    _copy(op, "sx", params=[]),
+                    _copy(op, "rz", params=[PI/2]),
+                    _copy(op, "sx", params=[]),
+                    _copy(op, "rz", params=[PI/2]),
+                ])
+            else:
+                raise NotImplementedError(f"Cannot map RY to target basis {target_basis}")
+
+        elif name == "rz":
+            if "rz" in target_basis:
+                ops_to_add.append(_copy(op))
+            else:
+                raise NotImplementedError(f"Cannot map RZ to target basis {target_basis}")
 
         # ---------- Two-qubit gates ----------
         elif name == "cx":
@@ -143,14 +163,19 @@ def map_to_basis(circuit: QuantumCircuit, target_basis: list) -> QuantumCircuit:
             if "cx" in target_basis:
                 ops_to_add.append(_copy(op))
             elif {"cz", "sx", "rz"} <= target_basis:
+                # CX(c,t) = H[t] CZ(c,t) H[t]
+                # where H = SX RZ(π/2) SX
                 ops_to_add.extend([
-                    _copy(op, "rz", qubits=[t], params=[PI]),
+                    # First H on target: SX RZ(π/2) SX
                     _copy(op, "sx", qubits=[t], params=[]),
                     _copy(op, "rz", qubits=[t], params=[PI/2]),
+                    _copy(op, "sx", qubits=[t], params=[]),
+                    # CZ
                     _copy(op, "cz", qubits=[c, t], params=[]),
-                    _copy(op, "rz", qubits=[t], params=[PI]),
+                    # Second H on target: SX RZ(π/2) SX
                     _copy(op, "sx", qubits=[t], params=[]),
                     _copy(op, "rz", qubits=[t], params=[PI/2]),
+                    _copy(op, "sx", qubits=[t], params=[]),
                 ])
             else:
                 raise NotImplementedError(f"Cannot map CX to target basis {target_basis}")
@@ -162,15 +187,8 @@ def map_to_basis(circuit: QuantumCircuit, target_basis: list) -> QuantumCircuit:
                 raise NotImplementedError(f"Cannot map CZ to target basis {target_basis}")
 
         elif name == "swap":
-            q0, q1 = qubits
             if "swap" in target_basis:
                 ops_to_add.append(_copy(op))
-            elif "cx" in target_basis:
-                ops_to_add.extend([
-                    _copy(op, "cx", [q0, q1], []),
-                    _copy(op, "cx", [q1, q0], []),
-                    _copy(op, "cx", [q0, q1], []),
-                ])
             else:
                 raise NotImplementedError(f"Cannot map SWAP to target basis {target_basis}")
 
@@ -183,9 +201,10 @@ def map_to_basis(circuit: QuantumCircuit, target_basis: list) -> QuantumCircuit:
         # Add all decomposed operations and update timeline
         for new_op in ops_to_add:
             new_circuit.add_operation(new_op)
-            # Update the logical time for all qubits involved in this operation
+            # Each decomposed operation advances time on its qubits
             for q in new_op.qubits:
-                last_time[q] = current_time
+                last_time[q] += 1
+    
     new_circuit.depth = new_circuit.calculate_depth()
     print(f"[DEBUG] Finished mapping. New circuit has {len(new_circuit.operations)} operations")
     return new_circuit
