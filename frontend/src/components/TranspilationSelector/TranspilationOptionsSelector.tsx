@@ -9,7 +9,7 @@ export const TranspilationOptionsSelector: React.FC<{
   const algorithms = [
     { id: 'naive', name: 'Naive', description: 'Simple greedy approach' },
     { id: 'sabre', name: 'SABRE', description: 'Heuristic bidirectional search' },
-    { id: 'lookahead', name: 'Lookahead', description: 'Forward-looking optimization' },
+    { id: 'dynamic', name: 'Dynamic', description: 'Keep the embedding updated' },
     { id: 'basic', name: 'Basic', description: 'Simple greedy approach' },
   ];
   

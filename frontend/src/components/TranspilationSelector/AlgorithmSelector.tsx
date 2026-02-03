@@ -16,9 +16,9 @@ export const AlgorithmSelector: React.FC<{
       recommended: true 
     },
     { 
-      id: 'lookahead', 
-      name: 'Lookahead Swap', 
-      description: 'Forward-looking optimization with depth awareness',
+      id: 'dynamic', 
+      name: 'Dynamic Swap', 
+      description: 'Dynamic qubit mapping that updates the embedding during transpilation',
       recommended: false 
     },
     { 
@@ -44,7 +44,7 @@ export const AlgorithmSelector: React.FC<{
         <div>
           <Title order={3} mb="xs">Select Transpilation Algorithms</Title>
           <Text size="sm" c="dimmed">
-            Choose one or more routing algorithms to compare. The Default/Naive transpilation is always included as a baseline.
+            Choose one or more routing algorithms to compare. The Default/Dynamic transpilation is always included as a baseline.
           </Text>
         </div>
         

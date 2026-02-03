@@ -64,7 +64,7 @@ normalized_qasm2_cache: Dict[str, str] = {}
 async def run_transpilation(request: TranspilationRequest):
     """
     Run transpilation on a circuit with a specific algorithm.
-    Supports: naive, sabre, stochastic, lookahead, basic
+    Supports: naive, sabre, stochastic, dynamic, basic
     """
     # Get the circuit
     qc = parsed_circuits.get(request.circuit_id)
@@ -86,7 +86,7 @@ async def run_transpilation(request: TranspilationRequest):
     from ..transpilationAlgorithms.naive_transpiler import naive_transpiler
     from ..transpilationAlgorithms.sabre_transpiler import sabre_transpiler
     # from ..transpilationAlgorithms.stochastic_transpiler import stochastic_transpiler
-    # from ..transpilationAlgorithms.lookahead_transpiler import lookahead_transpiler
+    from ..transpilationAlgorithms.dynamic_transpiler import dynamic_transpiler
     # from ..transpilationAlgorithms.basic_transpiler import basic_transpiler
     
     start_time = time.time()
@@ -104,9 +104,10 @@ async def run_transpilation(request: TranspilationRequest):
         elif algorithm == "stochastic":
             raise HTTPException(status_code=501, detail="Stochastic algorithm not yet implemented")
             # transpiled_qc, embedding, metrics = stochastic_transpiler(qc, request.topology)
-        elif algorithm == "lookahead":
-            raise HTTPException(status_code=501, detail="Lookahead algorithm not yet implemented")
-            # transpiled_qc, embedding, metrics = lookahead_transpiler(qc, request.topology)
+        elif algorithm == "dynamic":
+            # raise HTTPException(status_code=501, detail="Dynamic algorithm not yet implemented")
+            print("Using Dynamic transpiler")
+            transpiled_qc, embedding, metrics = dynamic_transpiler(qc, request.topology)
         elif algorithm == "basic":
             raise HTTPException(status_code=501, detail="Basic algorithm not yet implemented")
             # transpiled_qc, embedding, metrics = basic_transpiler(qc, request.topology)

@@ -1,4 +1,3 @@
-import { error } from "console";
 
 export interface CircuitSummary {
   n_qubits: number;

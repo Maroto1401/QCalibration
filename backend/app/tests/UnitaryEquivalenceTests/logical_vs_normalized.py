@@ -8,7 +8,7 @@ from qiskit.quantum_info import Operator, Statevector
 # -------------------- CONFIG --------------------
 CIRCUITS_FOLDER = "circuits"
 LOGICAL_QASM = "logical_circuit.qasm"
-NORMALIZED_QASM = "normalized_naive.qasm"
+NORMALIZED_QASM = "normalized.qasm"
 # ------------------------------------------------
 
 def load_circuit(path):
