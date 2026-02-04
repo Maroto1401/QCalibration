@@ -22,9 +22,9 @@ export const AlgorithmSelector: React.FC<{
       recommended: false 
     },
     { 
-      id: 'basic', 
-      name: 'Basic Swap', 
-      description: 'Simple greedy approach for quick transpilation',
+      id: 'calibration_aware', 
+      name: 'Calibration Aware', 
+      description: 'Heuristic based on calibration data taken from the topology',
       recommended: false 
     },
   ];

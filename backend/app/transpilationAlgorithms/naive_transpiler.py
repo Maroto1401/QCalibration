@@ -205,7 +205,6 @@ def naive_transpiler(
     routing_gate_count = 0          # Physical gates added for routing
 
     print(f"[NAIVE] Fixed embedding: {embedding}")
-    print(f"[NAIVE] Coupling map: {topology.coupling_map}")
 
     # ========== MAIN LOOP ==========
     for op_idx, op in enumerate(qc.operations):
@@ -213,8 +212,6 @@ def naive_transpiler(
             # Pass through non-Operation objects (barriers, etc.)
             transpiled_qc.operations.append(op)
             continue
-
-        print(f"\n[NAIVE] Processing op {op_idx}: {op.name} on qubits {op.qubits}")
 
         # ---------- SINGLE-QUBIT GATES ----------
         if len(op.qubits) == 1:
@@ -235,20 +232,13 @@ def naive_transpiler(
             err, dur = track_single_qubit_gate(
                 phys_op, embedding, gate_error_map, gate_duration_map
             )
-            print(f"        Applied single-qubit gate to physical qubit {p0}")
-
         # ---------- TWO-QUBIT GATES ----------
         elif len(op.qubits) == 2:
             q0, q1 = op.qubits
             p0, p1 = embedding[q0], embedding[q1]
 
-            print(f"        Logical qubits: {q0}, {q1}")
-            print(f"        Fixed embedding positions: {p0}, {p1}")
-
             # Check if qubits are already adjacent
-            if can_execute_gate(q0, q1, embedding, coupling_adjacency):
-                print(f"        ✓ Already adjacent! Applying gate directly.")
-                
+            if can_execute_gate(q0, q1, embedding, coupling_adjacency):                
                 # Apply gate with fixed physical qubits
                 phys_op = Operation(
                     name=op.name,
@@ -263,15 +253,11 @@ def naive_transpiler(
                 err, dur = track_two_qubit_gate(
                     phys_op, embedding, gate_error_map, gate_duration_map
                 )
-                print(f"        Gate executed: {p0} - {p1}")
                 continue
 
             # NOT adjacent - need to route and unroute
-            print(f"        ✗ Not adjacent. Finding routing path...")
             
             path, swaps = find_routing_path(q0, q1, embedding, coupling_adjacency)
-            print(f"        Routing path: {path}")
-            print(f"        SWAPs needed: {swaps}")
 
             # Track temporary positions as we route (CRITICAL!)
             temp_p0 = p0
@@ -290,13 +276,6 @@ def naive_transpiler(
                 temp_p0 = track_qubit_through_swap(temp_p0, swap_a, swap_b)
                 temp_p1 = track_qubit_through_swap(temp_p1, swap_a, swap_b)
 
-                print(f"        Forward SWAP({swap_a}, {swap_b}): "
-                      f"q0 moves {path[swap_idx]} → {temp_p0}, "
-                      f"q1 moves {path[swap_idx]} → {temp_p1}")
-
-            print(f"        After forward routing: q0 at {temp_p0}, q1 at {temp_p1}")
-            print(f"        ✓ Qubits are now adjacent (or should be)")
-
             # Now apply the gate at CURRENT (temporary) physical positions
             phys_op = Operation(
                 name=op.name,
@@ -311,7 +290,6 @@ def naive_transpiler(
             err, dur = track_two_qubit_gate(
                 phys_op, embedding, gate_error_map, gate_duration_map
             )
-            print(f"        Gate executed at: {temp_p0} - {temp_p1}")
 
             # ---- BACKWARD ROUTING: Undo SWAPs in reverse order to restore original positions ----
             for swap_idx, (swap_a, swap_b) in enumerate(reversed(swaps)):
@@ -325,16 +303,6 @@ def naive_transpiler(
                 # Track positions again as we undo SWAPs
                 temp_p0 = track_qubit_through_swap(temp_p0, swap_a, swap_b)
                 temp_p1 = track_qubit_through_swap(temp_p1, swap_a, swap_b)
-
-                print(f"        Backward SWAP({swap_a}, {swap_b}): "
-                      f"q0 → {temp_p0}, q1 → {temp_p1}")
-
-            # Verify we're back at original positions
-            print(f"        After backward routing: q0 at {temp_p0}, q1 at {temp_p1}")
-            if temp_p0 == p0 and temp_p1 == p1:
-                print(f"        ✓ Restored to original positions: {p0}, {p1}")
-            else:
-                print(f"        ⚠️  WARNING: Positions don't match! Original: {p0}, {p1}")
 
         else:
             raise NotImplementedError(

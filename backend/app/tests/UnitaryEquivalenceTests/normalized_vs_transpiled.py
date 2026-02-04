@@ -8,15 +8,15 @@ from qiskit.quantum_info import Operator, Statevector
 # -------------------- CONFIG --------------------
 CIRCUITS_FOLDER = "circuits"
 NORMALIZED_QASM = "normalized.qasm"
-TRANSPILED_QASM = "transpiled_sabre.qasm"
+TRANSPILED_QASM = "transpiled_free_sabre.qasm"
 
 # The final logical -> physical embedding after transpilation
 # Format: {logical_qubit_index: physical_qubit_index}
 EMBEDDING = {
-  "0": 0,
-  "1": 2,
-  "2": 1,
-  "3": 3
+  "0": 28,
+  "1": 36,
+  "2": 29,
+  "3": 30
 }
 # ------------------------------------------------
 
@@ -29,56 +29,69 @@ def load_circuit(path):
 
 def reorder_qubits(circ, embedding):
     """
-    Reorder qubits according to embedding (logical -> physical).
+    Reorder qubits according to embedding (physical -> logical).
     
     Args:
         circ: QuantumCircuit with physical qubit ordering
         embedding: dict mapping {logical_index: physical_index}
         
     Returns:
-        Circuit with logical qubit ordering (permuted)
+        Circuit with logical qubit ordering (permuted to match original logical indices)
     """
-    num_qubits = circ.num_qubits
+    # Find max physical qubit used in circuit
+    max_phys_qubit = 0
+    for instr in circ.data:
+        for qarg in instr.qubits:
+            qubit_index = list(circ.qubits).index(qarg)
+            max_phys_qubit = max(max_phys_qubit, qubit_index)
     
-    # Create the inverse permutation: from physical to logical
-    # physical_qubit -> logical_qubit
-    inverse_embedding = [0] * num_qubits
+    # Build inverse embedding: physical_qubit -> logical_qubit
+    inverse_embedding = {}
     for logical_str, physical_str in embedding.items():
         logical = int(logical_str)
         physical = int(physical_str)
-        if physical < num_qubits:
-            inverse_embedding[physical] = logical
+        inverse_embedding[physical] = logical
     
-    # Create a new circuit with permuted qubits
-    permuted_circ = QuantumCircuit(num_qubits, circ.num_clbits)
+    # Determine how many qubits the output circuit needs
+    # At least as many as the max logical qubit index + 1
+    num_logical_qubits = max(int(k) for k in embedding.keys()) + 1
+    num_output_qubits = max(num_logical_qubits, max_phys_qubit + 1)
+    
+    # Create output circuit
+    permuted_circ = QuantumCircuit(num_output_qubits, circ.num_clbits)
     
     # Copy metadata
     permuted_circ.metadata = circ.metadata.copy() if circ.metadata else {}
     
     # For each operation in the circuit
-    for instruction, qargs, cargs in circ.data:
+    for instr in circ.data:
+        operation = instr.operation
+        qargs = instr.qubits
+        cargs = instr.clbits
+        
         # Map physical qubits to logical qubits
-        # Get the index from the Qubit object by finding its position in the circuit
         mapped_qargs = []
         for qarg in qargs:
-            # Get the qubit index
-            # Method 1: Try to get from register
-            qubit_index = None
-            for i, qubit in enumerate(circ.qubits):
-                if qubit == qarg:
-                    qubit_index = i
-                    break
+            # Get the physical qubit index
+            phys_idx = list(circ.qubits).index(qarg)
             
-            if qubit_index is not None and qubit_index < len(inverse_embedding):
-                mapped_qargs.append(inverse_embedding[qubit_index])
+            # Look up logical qubit in inverse embedding
+            if phys_idx in inverse_embedding:
+                logical_idx = inverse_embedding[phys_idx]
             else:
-                # If we can't find it, keep original (shouldn't happen)
-                mapped_qargs.append(qarg)
+                # Physical qubit not in embedding, keep as-is
+                logical_idx = phys_idx
+            
+            mapped_qargs.append(logical_idx)
         
-        # Add the instruction with mapped qubits
-        # We need to convert indices back to qubit objects
+        # Convert indices to qubit objects
         mapped_qobj = [permuted_circ.qubits[idx] for idx in mapped_qargs]
-        permuted_circ.append(instruction, mapped_qobj, cargs)
+        
+        # Convert classical bits
+        mapped_cobj = [permuted_circ.clbits[i] for i in range(len(cargs))]
+        
+        # Append the operation
+        permuted_circ.append(operation, mapped_qobj, mapped_cobj)
     
     return permuted_circ
 

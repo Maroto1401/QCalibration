@@ -84,8 +84,8 @@ async def run_transpilation(request: TranspilationRequest):
     
     # Import algorithm-specific transpilers
     from ..transpilationAlgorithms.naive_transpiler import naive_transpiler
+    from ..transpilationAlgorithms.calibration_aware_transpiler import calibration_aware_transpiler
     from ..transpilationAlgorithms.sabre_transpiler import sabre_transpiler
-    # from ..transpilationAlgorithms.stochastic_transpiler import stochastic_transpiler
     from ..transpilationAlgorithms.dynamic_transpiler import dynamic_transpiler
     # from ..transpilationAlgorithms.basic_transpiler import basic_transpiler
     
@@ -108,9 +108,9 @@ async def run_transpilation(request: TranspilationRequest):
             # raise HTTPException(status_code=501, detail="Dynamic algorithm not yet implemented")
             print("Using Dynamic transpiler")
             transpiled_qc, embedding, metrics = dynamic_transpiler(qc, request.topology)
-        elif algorithm == "basic":
-            raise HTTPException(status_code=501, detail="Basic algorithm not yet implemented")
-            # transpiled_qc, embedding, metrics = basic_transpiler(qc, request.topology)
+        elif algorithm == "calibration_aware":
+            print("Using Calibration-Aware transpiler")
+            transpiled_qc, embedding, metrics = calibration_aware_transpiler(qc, request.topology)
         else:
             raise HTTPException(status_code=400, detail=f"Unknown algorithm: {request.algorithm}")
     except ValueError as e:

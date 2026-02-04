@@ -530,7 +530,7 @@ export const TranspilationStatsTable: React.FC<{
                               },
                             },
                             label: {
-                              formatter: "{b}: {c:.2f}%",
+                              formatter: (params: { name: string; value: number }) => `${params.name}: ${params.value.toFixed(2)}%`,
                             },
                           },
                         ],
