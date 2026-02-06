@@ -9,6 +9,7 @@ import { IconAlertCircle, IconMap } from "@tabler/icons-react";
 import { QuantumCircuitVisualizer } from "../components/analysisComponents/QuantumCircuitVisualizer";
 import { AlgorithmSelector } from "../components/TranspilationSelector/AlgorithmSelector";
 import { EmbeddingVisualization } from "../components/TranspilationSelector/EmbeddingVisualization";
+import { ErrorEstimatesSection } from "../components/TranspilationSelector/ErrorEstimatesSection";
 
 
 type Status = 'pending' | 'running' | 'completed' | 'error';
@@ -169,7 +170,7 @@ setNormalizedCircuit({
   const existingAlgorithms = Object.keys(results).filter(k => k !== 'naive');
 
   return (
-    <Container size="xl" py="md">
+    <><Container size="xl" py="md">
       <Title order={1} mb="lg">Quantum Circuit Transpilation</Title>
 
       <TranspilationHeader circuit={circuit} topology={topology} />
@@ -195,8 +196,7 @@ setNormalizedCircuit({
 
       <AlgorithmSelector
         onConfirm={handleAlgorithmConfirm}
-        existingAlgorithms={existingAlgorithms}
-      />
+        existingAlgorithms={existingAlgorithms} />
 
       <Paper p="md" withBorder>
         <Tabs defaultValue="naive">
@@ -225,8 +225,7 @@ setNormalizedCircuit({
                   originalCircuit={circuit.summary}
                   normalizedCircuit={normalizedCircuit.data}
                   isDefault={true}
-                  onTranspile={() => {}}
-                />
+                  onTranspile={() => { } } />
                 {results.naive.data.embedding && (
                   <Group mt="md">
                     <Button
@@ -250,8 +249,7 @@ setNormalizedCircuit({
                   originalCircuit={circuit.summary}
                   normalizedCircuit={normalizedCircuit.data}
                   isDefault={false}
-                  onTranspile={() => handleTranspile(algo)}
-                />
+                  onTranspile={() => handleTranspile(algo)} />
                 {results[algo].data!.embedding && (
                   <Group mt="md">
                     <Button
@@ -274,9 +272,11 @@ setNormalizedCircuit({
         embedding={embeddingView.embedding}
         opened={embeddingView.opened}
         onClose={() => setEmbeddingView({ opened: false, embedding: null, algorithmName: '' })}
-        algorithmName={embeddingView.algorithmName}
-      />
+        algorithmName={embeddingView.algorithmName} />
+
     </Container>
+    <ErrorEstimatesSection /></>
+
   );
 };
 

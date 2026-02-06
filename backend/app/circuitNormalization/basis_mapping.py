@@ -69,6 +69,30 @@ def map_to_basis(circuit: QuantumCircuit, target_basis: list) -> QuantumCircuit:
                 ])
             else:
                 raise NotImplementedError(f"Cannot map H to target basis {target_basis}")
+        elif name == "s":
+            if "s" in target_basis:
+                ops_to_add.append(_copy(op))
+            elif "rz" in target_basis:
+                ops_to_add.append(_copy(op, "rz", params=[PI/2]))
+            else:
+                raise NotImplementedError(...)
+        elif name == "t":
+            if "t" in target_basis:
+                ops_to_add.append(_copy(op))
+            elif "rz" in target_basis:
+                ops_to_add.append(_copy(op, "rz", params=[PI/4]))
+            else:
+                raise NotImplementedError(...)
+
+        elif name == "u3":
+            theta, phi, lam = params
+            # U3 = RZ(phi) RX(theta) RZ(lam)
+            ops_to_add.extend([
+                _copy(op, "rz", params=[phi]),
+                _copy(op, "rx", params=[theta]),
+                _copy(op, "rz", params=[lam]),
+            ])
+
 
         elif name == "x":
             if "x" in target_basis:

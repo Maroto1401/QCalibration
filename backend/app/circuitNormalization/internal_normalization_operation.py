@@ -15,7 +15,7 @@ NORMALIZATION_BASIS = {
     "rx", "ry", "rz",
 
     # two-qubit semantic
-    "cx", "cz", "swap",
+    "cx", "cz"
 }
 
 

@@ -17,7 +17,7 @@ import {
   IconAlertTriangle,
   IconCircleCheck,
 } from '@tabler/icons-react';
-import { CircuitMetadata } from '../types';
+import { CircuitMetadata } from '../../types';
 
 type Props = {
   accept?: string;
@@ -25,7 +25,7 @@ type Props = {
 };
 
 
-export default function CircuitUploader({ accept = '.qasm,.qasm3', setCircuitMetadata }: Props) {
+export default function CircuitUploader({ accept = '.qasm', setCircuitMetadata }: Props) {
   const [dragging, setDragging] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -74,62 +74,59 @@ export default function CircuitUploader({ accept = '.qasm,.qasm3', setCircuitMet
   // MAIN FILE PROCESSING
   // ---------------------------
   const validateAndHandleFile = useCallback(async (file: File | null) => {
-    if (!file) return;
-    setError(null);
-    setSuccess(false);
-    setFileName(file.name);
+  if (!file) return;
 
-    const text = await file.text();
+  setError(null);
+  setSuccess(false);
+  setFileName(file.name);
 
-    // Determine type
-    const ext = file.name.split(".").pop()?.toLowerCase();
-    const type =
-      ext === "qasm" ? "qasm" :
-      ext === "qasm3" ? "qasm3" :
-      detectByContent(text);
+  const text = await file.text();
 
-    if (!type) {
-      setError("Unsupported file type");
-      return;
-    }
+  // Determine type
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  const type =
+    ext === "qasm" ? "qasm" :
+    ext === "qasm3" ? "qasm3" :
+    detectByContent(text);
 
-    // Validate content
-    let validation = { valid: false, msg: "" };
-    if (type === "qasm" || type === "qasm3") validation = validateQasm(text, type);
-
-    if (!validation.valid) {
-      setError(validation.msg);
-      return;
-    }
-
-    // Show progress
-    setProgress(40);
-
-    try {
-  const response = await parse_file(file);
-
-  if (setCircuitMetadata) {
-    setCircuitMetadata({
-      circuit_id: response.circuit_id,
-      filename: file.name,
-      filetype: type,
-    });
+  if (!type) {
+    setError("Unsupported file type");
+    return;
   }
 
-  setProgress(100);
-  setSuccess(true);
+  // Validate content
+  let validation = { valid: false, msg: "" };
+  if (type === "qasm" || type === "qasm3") validation = validateQasm(text, type);
 
-  navigate("/circuit-analysis");
+  if (!validation.valid) {
+    setError(validation.msg);
+    return;
+  }
 
-} catch (err: any) {
-  console.error(err);
-  setError(err.message);
-} finally {
-  setProgress(null);
-}
+  // Show progress
+  setProgress(40);
 
+  try {
+    const response = await parse_file(file);
 
-  }, []);
+    if (setCircuitMetadata) {
+      setCircuitMetadata({
+        circuit_id: response.circuit_id,
+        filename: file.name,
+        filetype: type,
+      });
+    }
+
+    setProgress(100);
+    setSuccess(true);
+    navigate("/circuit-analysis");
+  } catch (err: any) {
+    console.error(err);
+    setError(err.message);
+  } finally {
+    setProgress(null);
+  }
+}, [navigate, setCircuitMetadata]);
 
   // ---------------------------
   // DROP HANDLING
