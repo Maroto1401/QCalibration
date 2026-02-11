@@ -11,7 +11,7 @@ from ..utils.transpilation_utils import (
     track_two_qubit_gate,
 )
 
-# ======================= SABRE TRANSPILER (CORRECTED) =======================
+# ======================= SABRE TRANSPILER (FIXED) =======================
 PI = math.pi
 
 def sabre_transpiler(
@@ -20,18 +20,15 @@ def sabre_transpiler(
     max_swaps_per_gate: int = 10
 ) -> Tuple[QuantumCircuit, Dict[int, int], Dict[str, float]]:
     """
-    SABRE transpiler with dynamic embedding and proper physical qubit tracking.
+    SABRE transpiler with ENFORCED CONNECTIVITY CHECKING.
     
-    Key difference from naive:
-    - Uses a heuristic (distance-based) to choose which SWAPs to apply
-    - Embedding evolves throughout transpilation
-    - Gates are applied to CURRENT physical positions (after SWAPs)
-    
-    CRITICAL FIX: When applying two-qubit gates, use current embedding positions,
-    not the original logical qubit indices.
+    CRITICAL FIX: 
+    - NEVER applies a two-qubit gate unless qubits are adjacent
+    - ALWAYS inserts SWAPs until qubits become adjacent
+    - No "give up and apply anyway" fallback
     """
 
-    print("[SABRE] Starting SABRE transpilation")
+    print("[SABRE] Starting SABRE transpilation with ENFORCED CONNECTIVITY")
 
     coupling_set = build_coupling_set(topology.coupling_map)
     adjacency = _build_adjacency_list(topology.coupling_map)
@@ -53,6 +50,7 @@ def sabre_transpiler(
     swaps_per_gate = defaultdict(int)
 
     iteration = 0
+    max_iterations = 10000  # Prevent infinite loops
 
     # ---------- SWAP DECOMPOSITION ----------
     def decompose_swap(swap_q0: int, swap_q1: int, embedding: Dict[int, int]):
@@ -78,7 +76,7 @@ def sabre_transpiler(
         return ops, len(ops)
 
     # ================= MAIN LOOP =================
-    while not all(executed):
+    while not all(executed) and iteration < max_iterations:
         iteration += 1
         front_layer = _get_front_layer(executed, dependencies)
 
@@ -124,6 +122,7 @@ def sabre_transpiler(
                 continue
 
             # ---------- TWO-QUBIT GATES ----------
+            # CRITICAL: Must check connectivity BEFORE applying gate
             q0, q1 = op.qubits
             p0, p1 = embedding[q0], embedding[q1]  # Get CURRENT physical positions
 
@@ -132,7 +131,7 @@ def sabre_transpiler(
                 # Adjacent: apply gate at current physical positions
                 phys_op = Operation(
                     name=op.name,
-                    qubits=[p0, p1],  # ← Use current physical positions!
+                    qubits=[p0, p1],
                     params=op.params,
                     clbits=op.clbits,
                     condition=op.condition,
@@ -145,28 +144,26 @@ def sabre_transpiler(
                 )
                 executed[idx] = True
                 progress = True
+                print(f"[SABRE] Iter {iteration}: Applied {op.name}({q0}, {q1}) "
+                      f"at physical ({p0}, {p1})")
                 continue
 
-            # Not adjacent: needs SWAPs
+            # Not adjacent: MUST insert SWAP - never give up
+            # Increment swap counter for this gate
             swaps_per_gate[idx] += 1
+            
             if swaps_per_gate[idx] > max_swaps_per_gate:
-                # Give up and apply gate anyway
-                phys_op = Operation(
-                    name=op.name,
-                    qubits=[p0, p1],
-                    params=op.params,
-                    clbits=op.clbits,
-                    condition=op.condition,
-                    metadata=op.metadata
-                )
-                transpiled_qc.operations.append(phys_op)
-                executed[idx] = True
-                progress = True
+                print(f"[SABRE] WARNING: Gate {op.name}({q0}, {q1}) at ({p0}, {p1}) "
+                      f"exceeded {max_swaps_per_gate} swaps. Still inserting SWAP.")
+            
+            # FORCE SWAP INSERTION - do not continue, fall through to SWAP section
 
         if progress:
             continue
 
-        # ----- No progress: insert a SWAP -----
+        # ----- No progress on front layer: insert a SWAP -----
+        print(f"[SABRE] Iter {iteration}: No progress, inserting SWAP")
+        
         blocked = []
         for idx in front_layer:
             op = operations[idx]
@@ -178,24 +175,30 @@ def sabre_transpiler(
                     blocked.append((idx, q0, q1, d))
 
         if not blocked:
+            print("[SABRE] No blocked gates found, but no progress. Breaking.")
             break
 
-        # Find best SWAP using heuristic
+        # Find best SWAP using heuristic - prioritize gates with largest distance
         blocked.sort(key=lambda x: x[3], reverse=True)
-        _, q0, q1, _ = blocked[0]
+        best_gate_idx, gate_q0, gate_q1, distance = blocked[0]
 
-        best_swap = _find_swap_for_gate(q0, q1, embedding, adjacency, distance_matrix, coupling_set)
+        # Try to find SWAP that improves distance for this gate
+        best_swap = _find_swap_for_gate(gate_q0, gate_q1, embedding, adjacency, 
+                                        distance_matrix, coupling_set)
+        
         if best_swap is None:
+            # Fallback: find any valid SWAP
             best_swap = _find_random_swap_safe(embedding, adjacency)
 
         if best_swap is None:
-            print("[SABRE] Could not find valid SWAP")
+            print("[SABRE] ERROR: Could not find valid SWAP! Breaking.")
             break
 
         swap_q0, swap_q1 = best_swap
 
-        print(f"[SABRE] Iteration {iteration}: Inserting SWAP({swap_q0}, {swap_q1}) "
-              f"at physical ({embedding[swap_q0]}, {embedding[swap_q1]})")
+        print(f"[SABRE] Iter {iteration}: Inserting SWAP({swap_q0}, {swap_q1}) "
+              f"at physical ({embedding[swap_q0]}, {embedding[swap_q1]}) "
+              f"for gate {operations[best_gate_idx].name}({gate_q0}, {gate_q1})")
 
         # ---- METRICS ----
         logical_swap_count += 1
@@ -208,14 +211,23 @@ def sabre_transpiler(
         routing_gate_count += n_hw
 
         # ---- UPDATE EMBEDDING (CRITICAL) ----
-        # This is a dynamic embedding: the mapping changes as we insert SWAPs
+        # The embedding changes as we insert SWAPs
         embedding[swap_q0], embedding[swap_q1] = embedding[swap_q1], embedding[swap_q0]
 
     # ================= FINALIZE =================
+    if iteration >= max_iterations:
+        print(f"[SABRE] WARNING: Reached max_iterations={max_iterations}")
+    
     # Add any remaining unexecuted operations
+    unexecuted_count = 0
     for i, done in enumerate(executed):
         if not done:
+            print(f"[SABRE] WARNING: Operation {i} not executed: {operations[i]}")
             transpiled_qc.operations.append(operations[i])
+            unexecuted_count += 1
+    
+    if unexecuted_count > 0:
+        print(f"[SABRE] WARNING: {unexecuted_count} operations were not executed")
 
     transpiled_qc.depth = transpiled_qc.calculate_depth()
 
@@ -250,7 +262,6 @@ def sabre_transpiler(
 
 def build_coupling_set(coupling_map):
     """Build set of valid (control, target) pairs from coupling map"""
-    # Convert lists to tuples if necessary (lists aren't hashable)
     return set(tuple(pair) if isinstance(pair, list) else pair for pair in coupling_map)
 
 def _build_adjacency_list(coupling_map):

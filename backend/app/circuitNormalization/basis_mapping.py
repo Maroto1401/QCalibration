@@ -93,7 +93,6 @@ def map_to_basis(circuit: QuantumCircuit, target_basis: list) -> QuantumCircuit:
                 _copy(op, "rz", params=[lam]),
             ])
 
-
         elif name == "x":
             if "x" in target_basis:
                 ops_to_add.append(_copy(op))

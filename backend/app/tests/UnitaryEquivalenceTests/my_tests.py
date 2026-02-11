@@ -1,151 +1,72 @@
+from qiskit_ibm_runtime import QiskitRuntimeService
+
+# Replace with your IBM Quantum API token
+QiskitRuntimeService.save_account(channel="ibm_quantum", token="gkVY6Gxx3Gfm3Natc_jlA91j0sw2iF-NJz-Zg2mdeTqQ", overwrite=True)
+
+
 from qiskit import QuantumCircuit
-from qiskit.quantum_info import Operator
-import numpy as np
 
-PI = np.pi
+qc_logical = QuantumCircuit.from_qasm_file("logical.qasm")
+qc_custom  = QuantumCircuit.from_qasm_file("my_transpiled.qasm")
 
-print("=" * 70)
-print("FINDING RX AND RY DECOMPOSITIONS")
-print("=" * 70)
-print("\nKnown: H = SX RZ(π/2) SX")
-print("\nGoal: Find RX(θ) and RY(θ) decompositions")
+from qiskit_ibm_runtime import QiskitRuntimeService
 
-theta = 0.7
+service = QiskitRuntimeService(channel="ibm_quantum")
 
-# RX(θ) = H RZ(θ) H
-# So: RX(θ) = [SX RZ(π/2) SX] RZ(θ) [SX RZ(π/2) SX]
+backend = service.backend("ibm_marrakesh")  
 
-test_rx = QuantumCircuit(1)
-test_rx.rx(theta, 0)
-U_rx = Operator(test_rx).data
+# Example: logical → physical qubit mapping
+embedding = {0: 3, 1: 5, 2: 7}
 
-rx_decomp = QuantumCircuit(1)
-# H RZ(θ) H where H = SX RZ(π/2) SX
-rx_decomp.sx(0)
-rx_decomp.rz(PI/2, 0)
-rx_decomp.sx(0)
-rx_decomp.rz(theta, 0)
-rx_decomp.sx(0)
-rx_decomp.rz(PI/2, 0)
-rx_decomp.sx(0)
-U_rx_decomp = Operator(rx_decomp).data
+qc_custom = qc_custom.assign_qubit_mapping(embedding)
 
-print("\n" + "=" * 70)
-print("RX DECOMPOSITION")
-print("=" * 70)
-print("\nRX(θ) = H RZ(θ) H")
-print("      = [SX RZ(π/2) SX] RZ(θ) [SX RZ(π/2) SX]")
+from qiskit_ibm_runtime import Sampler
 
-match_rx = np.allclose(U_rx, U_rx_decomp, atol=1e-10)
-diff_rx = np.max(np.abs(U_rx - U_rx_decomp))
-print(f"\nMatch: {'✅ YES' if match_rx else '❌ NO'} (diff: {diff_rx:.4e})")
+sampler = Sampler(backend=backend)
 
-if not match_rx:
-    print(f"\nRX({theta}):")
-    print(np.round(U_rx, 4))
-    print(f"\nDecomposition:")
-    print(np.round(U_rx_decomp, 4))
+job_logical = sampler.run(
+    qc_logical,
+    shots=1024,
+    skip_transpilation=True
+)
 
-# RY(θ) = RZ(π/2) H RZ(θ) H RZ(-π/2)
-# Or: RY(θ) = H RZ(-θ) H (conjugate)
+job_custom = sampler.run(
+    qc_custom,
+    shots=1024,
+    skip_transpilation=True
+)
 
-ry_test = QuantumCircuit(1)
-ry_test.ry(theta, 0)
-U_ry = Operator(ry_test).data
+def extract_job_metrics(job):
+    metrics = job.metrics()
+    return {
+        "job_id": job.job_id(),
+        "status": job.status().name,
+        "queue_time_s": metrics.get("queue_time", None),
+        "execution_time_s": metrics.get("execution_time", None),
+        "estimated_cost": metrics.get("estimated_cost", None),
+        "shots": metrics.get("shots", None),
+    }
 
-ry_decomp1 = QuantumCircuit(1)
-# RY(θ) = RZ(π/2) H RZ(θ) H RZ(-π/2)
-ry_decomp1.rz(PI/2, 0)
-ry_decomp1.sx(0)
-ry_decomp1.rz(PI/2, 0)
-ry_decomp1.sx(0)
-ry_decomp1.rz(theta, 0)
-ry_decomp1.sx(0)
-ry_decomp1.rz(PI/2, 0)
-ry_decomp1.sx(0)
-ry_decomp1.rz(-PI/2, 0)
-U_ry_decomp1 = Operator(ry_decomp1).data
+logical_metrics = extract_job_metrics(job_logical)
+custom_metrics  = extract_job_metrics(job_custom)
 
-ry_decomp2 = QuantumCircuit(1)
-# Try: H RZ(-θ) H
-ry_decomp2.sx(0)
-ry_decomp2.rz(PI/2, 0)
-ry_decomp2.sx(0)
-ry_decomp2.rz(-theta, 0)
-ry_decomp2.sx(0)
-ry_decomp2.rz(PI/2, 0)
-ry_decomp2.sx(0)
-U_ry_decomp2 = Operator(ry_decomp2).data
+print("Logical circuit:", logical_metrics)
+print("Custom circuit:", custom_metrics)
 
-print("\n" + "=" * 70)
-print("RY DECOMPOSITION")
-print("=" * 70)
+from qiskit import transpile
 
-print("\nAttempt 1: RY(θ) = RZ(π/2) H RZ(θ) H RZ(-π/2)")
-match_ry1 = np.allclose(U_ry, U_ry_decomp1, atol=1e-10)
-diff_ry1 = np.max(np.abs(U_ry - U_ry_decomp1))
-print(f"Match: {'✅ YES' if match_ry1 else '❌ NO'} (diff: {diff_ry1:.4e})")
+qc_qiskit = transpile(
+    qc_logical,
+    backend=backend,
+    optimization_level=3
+)
 
-print("\nAttempt 2: RY(θ) = H RZ(-θ) H")
-match_ry2 = np.allclose(U_ry, U_ry_decomp2, atol=1e-10)
-diff_ry2 = np.max(np.abs(U_ry - U_ry_decomp2))
-print(f"Match: {'✅ YES' if match_ry2 else '❌ NO'} (diff: {diff_ry2:.4e})")
+job_qiskit = sampler.run(
+    qc_qiskit,
+    shots=1024,
+    skip_transpilation=True
+)
 
-# Test other single-qubit gates
-print("\n" + "=" * 70)
-print("OTHER SINGLE-QUBIT GATES")
-print("=" * 70)
+qiskit_metrics = extract_job_metrics(job_qiskit)
+print("Qiskit transpiled:", qiskit_metrics)
 
-# Y = [[0, -i], [i, 0]]
-y_circ = QuantumCircuit(1)
-y_circ.y(0)
-U_y = Operator(y_circ).data
-
-y_decomp = QuantumCircuit(1)
-# Y = RX(π/2) RZ(π) RX(-π/2) or similar
-# Or: Y = RZ(π/2) RX(π) RZ(-π/2)
-y_decomp.rz(PI/2, 0)
-y_decomp.sx(0)
-y_decomp.rz(PI, 0)
-y_decomp.sx(0)
-y_decomp.rz(-PI/2, 0)
-U_y_decomp = Operator(y_decomp).data
-
-match_y = np.allclose(U_y, U_y_decomp, atol=1e-10)
-diff_y = np.max(np.abs(U_y - U_y_decomp))
-print(f"\nY = RZ(π/2) RX(π) RZ(-π/2)")
-print(f"  = RZ(π/2) [SX RZ(π/2) SX] RZ(π) [SX RZ(π/2) SX] RZ(-π/2)")
-print(f"Match: {'✅ YES' if match_y else '❌ NO'} (diff: {diff_y:.4e})")
-
-# Z = [[1, 0], [0, -1]] = RZ(π) up to global phase
-z_circ = QuantumCircuit(1)
-z_circ.z(0)
-U_z = Operator(z_circ).data
-
-z_decomp = QuantumCircuit(1)
-z_decomp.rz(PI, 0)
-U_z_decomp = Operator(z_decomp).data
-
-# Check if they differ by global phase
-match_z = np.allclose(U_z, U_z_decomp, atol=1e-10)
-# Also check ignoring global phase
-phase_z = np.angle(U_z[0, 0] / U_z_decomp[0, 0])
-U_z_decomp_corrected = U_z_decomp * np.exp(-1j * phase_z)
-match_z_phase = np.allclose(U_z, U_z_decomp_corrected, atol=1e-10)
-diff_z = np.max(np.abs(U_z - U_z_decomp_corrected))
-
-print(f"\nZ = RZ(π)")
-print(f"Match (exact): {'✅ YES' if match_z else '❌ NO'}")
-print(f"Match (ignoring global phase): {'✅ YES' if match_z_phase else '❌ NO'} (diff: {diff_z:.4e})")
-
-print("\n" + "=" * 70)
-print("SUMMARY OF CORRECT DECOMPOSITIONS")
-print("=" * 70)
-
-print(f"\nH = SX RZ(π/2) SX ✅")
-print(f"X = SX SX ✅")
-print(f"RX(θ) = SX RZ(π/2) SX RZ(θ) SX RZ(π/2) SX {'✅' if match_rx else '❌'}")
-print(f"RY(θ) = RZ(π/2) SX RZ(π/2) SX RZ(θ) SX RZ(π/2) SX RZ(-π/2) {'✅' if match_ry1 else '❌'}")
-print(f"        (or H RZ(-θ) H) {'✅' if match_ry2 else '❌'}")
-print(f"Z = RZ(π) ✅")
-print(f"Y = RZ(π/2) SX RZ(π/2) SX RZ(π) SX RZ(π/2) SX RZ(-π/2) {'✅' if match_y else '❌'}")

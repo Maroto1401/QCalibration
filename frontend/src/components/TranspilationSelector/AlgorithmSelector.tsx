@@ -44,7 +44,7 @@ export const AlgorithmSelector: React.FC<{
         <div>
           <Title order={3} mb="xs">Select Transpilation Algorithms</Title>
           <Text size="sm" c="dimmed">
-            Choose one or more routing algorithms to compare. The Default/Dynamic transpilation is always included as a baseline.
+            Choose one or more routing algorithms to compare. The Naive transpilation is always included as a baseline.
           </Text>
         </div>
         

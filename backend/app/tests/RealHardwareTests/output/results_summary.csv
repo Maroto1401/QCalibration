@@ -1,1 +1,13 @@
-
+circuit,optimization_level,depth,gate_count,classical_fidelity
+naive_transpiled.qasm,,481,762,0.887328529072538
+logical_circuit.qasm,0.0,98,239,0.9273328492761119
+logical_circuit.qasm,1.0,54,120,0.9764914047465789
+logical_circuit.qasm,2.0,52,114,0.9754198598106119
+logical_circuit.qasm,3.0,52,114,0.9794278161245739
+sabre_transpiled.qasm,,120,232,0.9630339736923705
+normalized.qasm,0.0,142,335,0.9350905402539699
+normalized.qasm,1.0,52,122,0.9792558484070355
+normalized.qasm,2.0,54,119,0.97653070911067
+normalized.qasm,3.0,54,119,0.9575927797114566
+calibration_transpiled.qasm,,78,142,0.9194210253534895
+dynamic_transpiled.qasm,,193,339,0.9472424739494535
