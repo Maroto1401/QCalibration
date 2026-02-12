@@ -1,3 +1,4 @@
+# Utility functions for transpilation algorithms (coupling map, calibration data, metrics)
 from typing import Dict, List, Tuple, Set, Optional
 from ..core.QuantumCircuit import QuantumCircuit, Operation
 import math

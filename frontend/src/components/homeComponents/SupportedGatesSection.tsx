@@ -1,3 +1,4 @@
+// Supported gates section - displays list of quantum gates supported by QCalibrate
 import { Container, Title, Text, Card, Badge, SimpleGrid, Stack } from "@mantine/core";
 
 interface GateCategory {

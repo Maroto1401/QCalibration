@@ -1,3 +1,2 @@
-# backend/app/store.py 
-# This file is responsible for storing the parsed circuits and their metadata in memory.
+# In-memory storage for parsed and transpiled circuits
 parsed_circuits = {}

@@ -5,21 +5,8 @@ uvicorn[standard]==0.23.1
 # Data validation
 pydantic==2.5.1
 
-# ORM and PostgreSQL driver
-sqlalchemy==2.0.44
-psycopg2-binary==2.9.9
-
-# Asynchronous task queue
-celery==5.6.0
-redis==7.1.0
-
 # Environment variable management
 python-dotenv==1.2.1
-
-# Supabase integration (storage + auth)
-supabase==2.25.0
-supabase-auth==2.25.0
-supabase-functions==2.25.0
 
 # Quantum SDK for circuit construction and export
 qiskit==2.2.3

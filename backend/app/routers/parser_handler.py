@@ -1,8 +1,8 @@
+# API endpoint for parsing uploaded circuit files (QASM format)
 from fastapi import APIRouter, UploadFile, HTTPException
 from uuid import uuid4
 
 from ..parsers.qasm2_parser import qasm2_parser
-from ..parsers.qasm3_parser import qasm3_parser
 from ..core.QuantumCircuit import QuantumCircuit, Operation
 from .store import parsed_circuits
 router = APIRouter(prefix="", tags=["parsing"])
@@ -10,7 +10,7 @@ router = APIRouter(prefix="", tags=["parsing"])
 @router.post("/parse-circuit")
 async def parse_circuit(file: UploadFile):
     """
-    Receives any supported circuit file (.qasm, .qasm3, .json)
+    Receives any supported circuit file (.qasm)
     Determines the type and forwards to the correct parser.
     Returns a normalized QuantumCircuit description.
     """
@@ -26,16 +26,12 @@ async def parse_circuit(file: UploadFile):
             raise HTTPException(status_code=400, detail="File is empty")
 
         # --- Detect type by extension ---
-        if filename.endswith(".qasm3"):
-            filetype = "qasm3"
-        elif filename.endswith(".qasm"):
+        if filename.endswith(".qasm"):
             filetype = "qasm"
         else:
             # fallback: try content detection
             first_line = raw_text.strip().split("\n")[0]
-            if "OPENQASM 3" in first_line.upper():
-                filetype = "qasm3"
-            elif "OPENQASM 2" in first_line.upper():
+            if "OPENQASM 2" in first_line.upper():
                 filetype = "qasm"
             else:
                 raise HTTPException(
@@ -47,8 +43,6 @@ async def parse_circuit(file: UploadFile):
         try:
             if filetype == "qasm":
                 qc: QuantumCircuit = qasm2_parser(raw_text)
-            elif filetype == "qasm3":
-                qc: QuantumCircuit = qasm3_parser(raw_text)
             else:
                 raise HTTPException(status_code=500, detail="Unknown filetype detected")
         except Exception as e:

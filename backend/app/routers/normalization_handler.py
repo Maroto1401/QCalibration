@@ -1,3 +1,4 @@
+# API endpoint for circuit normalization and basis mapping
 from fastapi import APIRouter, HTTPException, Query
 from ..circuitNormalization import internal_normalization_circuit, basis_mapping
 from ..core import QuantumCircuit

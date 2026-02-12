@@ -1,3 +1,4 @@
+// Hero section - landing banner with app title and CTA
 import { Container, Title, Group, Stack } from "@mantine/core";
 import { IconCircuitResistor } from "@tabler/icons-react";
 import { CircuitMetadata } from "../../types";

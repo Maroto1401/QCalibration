@@ -1,3 +1,4 @@
+// Home page - landing page with circuit uploader and features
 import { Divider, Text } from "@mantine/core";
 import { CircuitMetadata } from "../types";
 import { HeroSection } from "../components/homeComponents/HeroSection";

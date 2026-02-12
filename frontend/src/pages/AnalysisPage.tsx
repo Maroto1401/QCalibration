@@ -1,3 +1,4 @@
+// Analysis page - visualizes circuit metrics, gates, connectivity, and operations
 import { Container, Title, Text, Loader, Alert, Grid, Group, Divider, Stack} from "@mantine/core";
 import { useEffect, useState } from "react";
 import axios from "axios";

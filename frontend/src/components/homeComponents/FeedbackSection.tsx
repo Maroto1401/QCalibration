@@ -1,3 +1,4 @@
+// Feedback section - encourages user feedback and testing
 import { Container, Paper, Stack, ThemeIcon, Title, Text, Button } from "@mantine/core";
 import { IconFlask, IconMail } from "@tabler/icons-react";
 

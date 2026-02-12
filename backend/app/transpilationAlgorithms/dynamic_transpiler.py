@@ -1,3 +1,4 @@
+# Dynamic transpiler - routing algorithm that adapts to circuit structure
 from typing import Dict, Tuple
 from collections import deque, defaultdict
 import math

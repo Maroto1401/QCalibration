@@ -1,3 +1,4 @@
+// Topology view - displays hardware topology and qubit connectivity map
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button, Container, Text, Box } from "@mantine/core";
 import { CircuitData, Topology } from "../../types";

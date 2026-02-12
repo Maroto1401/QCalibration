@@ -1,3 +1,4 @@
+// Utility functions - helpers for rendering and formatting data
 import { Topology } from "../types";
 import * as echarts from "echarts";
 

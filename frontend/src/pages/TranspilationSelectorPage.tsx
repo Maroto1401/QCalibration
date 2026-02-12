@@ -1,3 +1,4 @@
+// Transpilation selector page - run and compare transpilation algorithms
 import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { TranspilationResult, CircuitSummary } from "../types";

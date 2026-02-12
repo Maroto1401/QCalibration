@@ -1,3 +1,4 @@
+# QASM 2.0 exporter - converts internal circuit representation to OpenQASM 2.0 format
 """
 Convert custom QuantumCircuit IR to OpenQASM 2.0 format.
 """

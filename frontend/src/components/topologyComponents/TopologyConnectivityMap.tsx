@@ -1,3 +1,4 @@
+// Topology connectivity map - visualizes qubit layout and coupling map on hardware
 import React, { useMemo } from "react";
 import ReactECharts from "echarts-for-react";
 import { Stack, Text, Box, Paper, Badge, Group } from "@mantine/core";

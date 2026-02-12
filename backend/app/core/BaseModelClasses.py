@@ -1,3 +1,4 @@
+# Pydantic models for request/response validation and data structures
 from pydantic import BaseModel
 from typing import Dict, List, Optional
 # ==================== PYDANTIC MODELS ====================

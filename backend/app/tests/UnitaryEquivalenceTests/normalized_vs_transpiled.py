@@ -1,4 +1,4 @@
-# check_normalized_vs_transpiled.py
+# Test: verifies unitary equivalence between normalized and transpiled circuits
 import os
 import sys
 import numpy as np

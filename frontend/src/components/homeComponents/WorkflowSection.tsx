@@ -1,3 +1,4 @@
+// Workflow section - displays QCalibrate's 6-step workflow visualization
 import { Container, Title, Text, Card, Badge, SimpleGrid, Group, ThemeIcon } from "@mantine/core";
 import { FC } from "react";
 import {

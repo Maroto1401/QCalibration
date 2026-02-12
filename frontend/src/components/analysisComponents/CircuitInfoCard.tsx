@@ -1,3 +1,4 @@
+// Circuit info card - displays circuit filename, type, and file format details
 import { Card, Group, ThemeIcon, Title, Text } from "@mantine/core";
 import { IconBraces, IconFileCode, IconFileText } from "@tabler/icons-react";
 import { CircuitMetadata } from "../../types"; 

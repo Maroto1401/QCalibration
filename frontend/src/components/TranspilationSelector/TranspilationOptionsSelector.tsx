@@ -1,3 +1,4 @@
+// Transpilation options selector - multi-select UI for choosing transpilation algorithms
 import { Card, Grid, Group, Paper, Switch, Title, Text, Button} from "@mantine/core";
 import { useState } from "react";
 

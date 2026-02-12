@@ -1,3 +1,4 @@
+// Transpilation stats table - detailed breakdown of transpilation metrics
 import React, { useMemo } from "react";
 import {
   Card,

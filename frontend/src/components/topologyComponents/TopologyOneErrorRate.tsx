@@ -1,3 +1,4 @@
+// Error note - displays information about gate error rates on topology
 import { Box, Text, Anchor, Group } from "@mantine/core";
 import { IconAlertTriangle } from "@tabler/icons-react";
 

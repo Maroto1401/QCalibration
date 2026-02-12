@@ -1,3 +1,4 @@
+// Two-qubit gates breakdown - donut chart showing 2Q gate distribution
 import { Card, Text, Badge, Group } from "@mantine/core";
 import ReactECharts from "echarts-for-react";
 import * as echarts from "echarts";

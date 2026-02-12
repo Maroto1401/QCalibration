@@ -1,3 +1,4 @@
+// Features section - highlights key features and capabilities of QCalibrate
 import { Container, Title, Text, Card, SimpleGrid, Group, ThemeIcon } from "@mantine/core";
 import { FC } from "react";
 import {

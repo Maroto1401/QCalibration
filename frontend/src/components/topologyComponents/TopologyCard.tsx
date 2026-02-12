@@ -1,4 +1,4 @@
-// TopologyCard.tsx
+// Topology card - displays individual quantum hardware topology with key metrics
 import { Card, Text, Title, Stack, Badge, Group, ThemeIcon, Button } from "@mantine/core";
 import { IconNetwork } from "@tabler/icons-react";
 import { CircuitData, Topology } from "../../types";

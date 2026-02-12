@@ -1,3 +1,4 @@
+# API endpoint for retrieving quantum hardware topologies from vendors
 from fastapi import APIRouter
 from ..retrievers.ibm_retriever import fetch_ibm_topologies
 

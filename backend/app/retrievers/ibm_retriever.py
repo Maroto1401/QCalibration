@@ -1,3 +1,4 @@
+# IBM Quantum hardware retriever - fetches topologies and calibration data from IBM
 from qiskit_ibm_runtime import QiskitRuntimeService
 from uuid import uuid4
 from typing import List, Dict, Tuple

@@ -1,3 +1,4 @@
+// Circuit uploader - drag-and-drop UI for uploading quantum circuit files
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {

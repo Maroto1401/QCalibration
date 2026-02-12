@@ -1,3 +1,4 @@
+// Transpilation header - displays circuit and topology info during transpilation
 import { Badge, Grid, Group, Paper, Stack, Title, Text } from "@mantine/core";
 import { CircuitData, Topology} from "../../types";
 import { IconCircuitSwitchOpen, IconCpu } from "@tabler/icons-react";

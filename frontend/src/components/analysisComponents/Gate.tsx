@@ -1,3 +1,4 @@
+// Gate - renders individual quantum gate in circuit visualization
 import { Operation } from "../../types";
 import { GATE_COLORS } from "../../utils/GATE_CONSTANTS";
 

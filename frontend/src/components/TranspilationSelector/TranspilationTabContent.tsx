@@ -1,3 +1,4 @@
+// Transpilation tab content - displays transpilation results in table or chart view
 import { Button, Card, Group, Stack, Text } from "@mantine/core";
 import { IconChartLine, IconRefresh, IconTable } from "@tabler/icons-react";
 import { TranspilationResult } from "../../types";

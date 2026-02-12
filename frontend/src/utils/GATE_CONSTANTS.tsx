@@ -1,4 +1,4 @@
-// Gate rendering constants
+// Gate rendering constants - colors and layout parameters for circuit visualization
 export const GATE_COLORS: Record<string, string> = {
   id: "#384040ff",
   h: "#4A90E2",

@@ -1,3 +1,4 @@
+// Quantum circuit visualizer - renders visual representation of quantum circuit
 import { Box, Text, Paper, ScrollArea } from "@mantine/core";
 import { CircuitSummary, Operation } from "../../types";
 import { Gate } from "./Gate";

@@ -1,3 +1,4 @@
+// Gate breakdown card - pie chart showing distribution of gate types in circuit
 import { Card } from "@mantine/core";
 import ReactECharts from "echarts-for-react";
 import * as echarts from "echarts";

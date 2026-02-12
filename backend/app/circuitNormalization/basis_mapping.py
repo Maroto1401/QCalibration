@@ -1,3 +1,4 @@
+# Gate basis mapping - converts quantum gates to target basis gate sets
 from ..core.QuantumCircuit import QuantumCircuit, Operation
 import math
 

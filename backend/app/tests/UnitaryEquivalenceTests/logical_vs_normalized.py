@@ -1,3 +1,4 @@
+# Test: verifies unitary equivalence between logical and normalized circuits
 import os
 import sys
 import numpy as np

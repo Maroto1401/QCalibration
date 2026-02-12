@@ -1,3 +1,4 @@
+// Algorithm selector - UI to select and run transpilation algorithms
 import { Alert, Button, Card, Checkbox, Grid, Group, Paper, Stack, Title, Text, Badge } from "@mantine/core";
 import { IconAlertCircle, IconRefresh } from "@tabler/icons-react";
 import { useState } from "react";

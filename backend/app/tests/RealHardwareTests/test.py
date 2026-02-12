@@ -1,7 +1,8 @@
+# Real hardware tests - validates transpilation against actual IBM quantum hardware
 import os
 import numpy as np
 import pandas as pd
-
+import time
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Statevector, Operator
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
@@ -116,15 +117,23 @@ def apply_inverse_embedding(circuit, embedding):
     return corrected
 
 def run_sampler(sampler, circuit):
+    start_time = time.time()
+
     job = sampler.run([circuit])
     result = job.result()[0]
+
+    end_time = time.time()
+    wall_time = end_time - start_time
 
     if hasattr(result.data, "c"):
         counts = result.data.c.get_counts()
         total = sum(counts.values())
-        return {k: v / total for k, v in counts.items()}
+        probs = {k: v / total for k, v in counts.items()}
     else:
-        return None
+        probs = None
+
+    return probs, wall_time
+
 
 
 # =====================================================
@@ -159,7 +168,7 @@ for name, circuit in circuits.items():
     print(f"  Unitary equivalent to reference? {eq}")
 
     # Simulator fidelity check
-    exp_probs = run_sampler(sampler_sim, circuit)
+    exp_probs, wall_time = run_sampler(sampler_sim, circuit)
     fid = classical_fidelity(ideal_reference_probs, exp_probs)
     print(f"  Simulator fidelity: {fid:.6f}")
 
@@ -197,16 +206,19 @@ for name, circuit in validated_circuits.items():
             tcirc = pm.run(circuit)
 
         try:
-            exp_probs = run_sampler(sampler_real, tcirc)
+            exp_probs, wall_time = run_sampler(sampler_real, tcirc)
             fid = classical_fidelity(ideal_reference_probs, exp_probs)
+
 
             results.append({
                 "circuit": name,
-                "optimization_level": opt,
+                "optimization_level": int(opt) if opt is not None else "Own Transpilation",
                 "depth": tcirc.depth(),
                 "gate_count": tcirc.size(),
-                "classical_fidelity": fid
+                "classical_fidelity": fid,
+                "wall_time_seconds": wall_time,
             })
+
 
             print(f"  ✓ Opt {opt}: Fidelity = {fid:.4f}")
 

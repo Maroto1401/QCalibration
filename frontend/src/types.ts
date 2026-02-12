@@ -1,3 +1,4 @@
+// TypeScript type definitions for circuit, topology, and transpilation data
 
 export interface CircuitSummary {
   n_qubits: number;

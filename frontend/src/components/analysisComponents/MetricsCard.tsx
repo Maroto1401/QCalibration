@@ -1,3 +1,4 @@
+// Metrics card - displays circuit key metrics (qubits, gates, depth, classical bits)
 import { Text, Group, Stack } from "@mantine/core";
 import { CircuitSummary } from "../../types";
 

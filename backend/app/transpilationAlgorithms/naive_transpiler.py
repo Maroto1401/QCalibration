@@ -1,3 +1,4 @@
+# Naive transpiler - simple greedy qubit routing algorithm
 from typing import Dict, Tuple
 from collections import deque, defaultdict
 import math

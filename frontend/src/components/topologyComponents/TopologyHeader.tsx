@@ -1,3 +1,4 @@
+// Topology header - displays topology name, vendor, and key properties
 import {
   Group,
   Stack,

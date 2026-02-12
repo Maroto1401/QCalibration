@@ -1,3 +1,4 @@
+// Embedding visualization - displays logical to physical qubit mapping on topology
 import { useMemo } from "react";
 import ReactECharts from "echarts-for-react";
 import { Stack, Text, Box, Paper, Badge, Group, Modal } from "@mantine/core";

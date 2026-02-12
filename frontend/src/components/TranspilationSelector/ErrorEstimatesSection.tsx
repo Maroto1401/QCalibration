@@ -1,3 +1,4 @@
+// Error estimates section - displays calibration and error information
 import { Container, Paper, Group, ThemeIcon, Title, Text } from "@mantine/core";
 import { IconBulb } from "@tabler/icons-react";
 

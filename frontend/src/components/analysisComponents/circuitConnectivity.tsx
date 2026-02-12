@@ -1,3 +1,4 @@
+// Circuit connectivity heatmap - visualizes qubit interaction frequencies
 import { Paper, Text, Title, Slider, Group, Stack, Badge, Box } from '@mantine/core';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';

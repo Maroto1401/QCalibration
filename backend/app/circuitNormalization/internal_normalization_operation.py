@@ -1,4 +1,4 @@
-# normalization.py
+# Operation normalization - decomposes gates into canonical basis for normalization
 import math
 from typing import List
 from ..core.QuantumCircuit import Operation

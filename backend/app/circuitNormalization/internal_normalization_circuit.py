@@ -1,3 +1,4 @@
+# Circuit normalization - converts circuits to canonical intermediate representation
 from ..core.QuantumCircuit import QuantumCircuit
 from . import internal_normalization_operation  # import the module
 CONTROL_FLOW_OPS = {"measure", "barrier", "for_loop", "while_loop", "if_else"}

@@ -1,3 +1,4 @@
+// Circuit summary card - displays uploaded circuit metadata and properties
 import { Card, Text, Title, Stack, Badge, Group, ThemeIcon, Button } from "@mantine/core";
 import { IconNetwork } from "@tabler/icons-react"; 
 import { CircuitData, CircuitMetadata } from "../../types";
