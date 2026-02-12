@@ -1,4 +1,4 @@
-# QCal – Quantum Circuit Optimization & Calibration Platform
+<img width="1920" height="1258" alt="image" src="https://github.com/user-attachments/assets/d984cf84-95dd-4da3-bea8-5becd1c793b1" />
 
 QCal is a hardware-aware quantum circuit optimization and benchmarking platform built with Qiskit and IBM Quantum Runtime.
 
